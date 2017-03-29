@@ -2,7 +2,7 @@
 
 const assert = require( 'assert' )
 const is = require( '@mojule/is' )
-const ApiFactory = require( '../src' )
+const ApiFactory = require( '../dist' )
 
 const isNumber = n => typeof n === 'number' && !Number.isNaN( n )
 const isFunction = f => typeof f === 'function'
