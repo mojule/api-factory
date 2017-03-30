@@ -9,7 +9,7 @@ var defaultOptions = {
   isState: function isState(state) {
     return true;
   },
-  exposeState: true,
+  exposeState: false,
   removePrivate: true,
   removeStatic: true
 };

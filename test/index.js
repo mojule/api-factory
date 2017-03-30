@@ -42,7 +42,7 @@ describe( 'ApiFactory', () => {
   })
 
   it( 'Exposes state', () => {
-    const Point = ApiFactory( pointModule )
+    const Point = ApiFactory( pointModule, { exposeState: true } )
 
     const point = Point({ x: 5, y: 7 })
 
@@ -51,7 +51,7 @@ describe( 'ApiFactory', () => {
   })
 
   it( 'Hides state', () => {
-    const Point = ApiFactory( pointModule, { exposeState: false } )
+    const Point = ApiFactory( pointModule )
 
     const point = Point({ x: 5, y: 7 })
 

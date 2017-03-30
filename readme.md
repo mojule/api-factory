@@ -333,6 +333,10 @@ also accepts raw data as an argument.
 
 ### Scoping functions
 
+You can make functions in your modules that don't need the state, so they're
+available without creating instances. You can also make functions that are not
+exposed in the final instance, but are available to your other modules:
+
 #### Private functions
 
 You can make plugin functions available to other plugins, but not available on
@@ -398,7 +402,7 @@ the defaults:
 const defaultOptions = {
   getStateKey: state => state,
   isState: state => true,
-  exposeState: true,
+  exposeState: false,
   removePrivate: true,
   removeStatic: true
 }
@@ -406,19 +410,18 @@ const defaultOptions = {
 
 #### Hiding state from comsuming code
 
-We have a dirty little secret - every instance of an API has the state attached
-to it by default:
+By default, the state is not exposed to consuming code. You might want to expose
+it for debugging or testing. By passing the `exposeState` option, you can
+attach the state to the returned API instance:
 
 [examples/point/expose-state.js](examples/point/expose-state.js)
 ```javascript
-const point = Point( { x: 5, y: 7 } )
+const point = Point( { x: 5, y: 7 }, { exposeState: true } )
 
 console.log( point.state ) // { x: 5, y: 7 }
 ```
 
-This is convenient for some use cases, but you may want to ensure that the
-consuming code can never alter the state without going through your API. In this
-case, we just pass `exposeState: false` in the options:
+Default behaviour:
 
 [examples/point/hide-state.js](examples/point/hide-state.js)
 ```javascript

@@ -9,7 +9,7 @@ const pointModule = ( api, state ) => {
   }
 }
 
-const Point = ApiFactory( pointModule )
+const Point = ApiFactory( pointModule, { exposeState: true } )
 
 const point = Point( { x: 5, y: 7 } )
 

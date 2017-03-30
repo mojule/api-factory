@@ -5,7 +5,7 @@ const is = require( '@mojule/is' )
 const defaultOptions = {
   getStateKey: state => state,
   isState: state => true,
-  exposeState: true,
+  exposeState: false,
   removePrivate: true,
   removeStatic: true
 }
