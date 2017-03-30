@@ -50,12 +50,30 @@ describe( 'ApiFactory', () => {
     assert.equal( point.state.y, 7 )
   })
 
+  it( 'State available internally', () => {
+    const internalStateModule = ( api, state ) => {
+      return {
+        internalState: () => api._state
+      }
+    }
+
+    const Point = ApiFactory( [ pointModule, internalStateModule ] )
+
+    const point = Point({ x: 5, y: 7 })
+
+    const state = point.internalState()
+
+    assert.equal( state.x, 5 )
+    assert.equal( state.y, 7 )
+  })
+
   it( 'Hides state', () => {
     const Point = ApiFactory( pointModule )
 
     const point = Point({ x: 5, y: 7 })
 
     assert.equal( point.state, undefined )
+    assert.equal( point._state, undefined )
   })
 
   it( 'Enforces isState', () => {

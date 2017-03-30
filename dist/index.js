@@ -54,6 +54,8 @@ var ApiFactory = function ApiFactory() {
         return Internal(newState);
       };
 
+      api._state = state;
+
       addModules(modules, api, state);
 
       if (exposeState) Object.assign(api, { state: state });
@@ -121,9 +123,9 @@ var validModules = function validModules(modules) {
 };
 
 var withoutPrefixes = function withoutPrefixes(api, prefixes) {
-  var fnames = Object.keys(api);
+  var propertyNames = Object.keys(api);
 
-  return fnames.reduce(function (newApi, name) {
+  return propertyNames.reduce(function (newApi, name) {
     var hasPrefix = prefixes.some(function (prefix) {
       return name.startsWith(prefix);
     });

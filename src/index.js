@@ -46,6 +46,8 @@ const ApiFactory = ( modules = [], options = {} ) => {
   const Internal = state => CachedApi( state, internalCache, state => {
     const api = newState => Internal( newState )
 
+    api._state = state
+
     addModules( modules, api, state )
 
     if( exposeState )
@@ -111,9 +113,9 @@ const validModules = modules =>
   is.array( modules ) && modules.every( is.function )
 
 const withoutPrefixes = ( api, prefixes ) => {
-  const fnames = Object.keys( api )
+  const propertyNames = Object.keys( api )
 
-  return fnames.reduce( ( newApi, name ) => {
+  return propertyNames.reduce( ( newApi, name ) => {
     const hasPrefix = prefixes.some( prefix => name.startsWith( prefix ) )
 
     if( !hasPrefix )

@@ -331,11 +331,15 @@ const addPointOrNumbersModules = ( api, state ) => {
 Following on from this, you could extend this decorator or add a new one that
 also accepts raw data as an argument.
 
-### Scoping functions
+### Scoping API members
 
-You can make functions in your modules that don't need the state, so they're
-available without creating instances. You can also make functions that are not
-exposed in the final instance, but are available to your other modules:
+Sometimes you may need to access the state of another instance - it is attached
+to the `api` argument as _state, but won't be exposed to external consuming
+code.
+
+You can also make functions in your modules that don't need the state, so
+they're available without creating instances. You can also make functions that
+are not exposed in the final instance, but are available to your other modules:
 
 #### Private functions
 
