@@ -40,6 +40,9 @@ const ApiFactory = ( modules = [], options = {} ) => {
 
     if( prefixes.length > 0 ) {
       api = withoutPrefixes( api, prefixes )
+
+      handleResults( api )
+
       apiToState.set( api, state )
     }
 
@@ -105,6 +108,35 @@ const ApiFactory = ( modules = [], options = {} ) => {
     modules.forEach( addStatic )
   }
 
+  const handleResult = result => {
+    if( result && is.function( result._getState ) ){
+      const resultState = result._getState()
+
+      return Api( resultState )
+    }
+
+    if( is.array( result ) ){
+      return result.map( handleResult )
+    }
+
+    if( is.object( result ) ){
+      Object.keys( result ).forEach( key => {
+        result[ key ] = handleResult( result[ key ] )
+      })
+    }
+
+    return result
+  }
+
+  const handleResults = api => {
+    Object.keys( api ).forEach( propertyName => {
+      const fn = api[ propertyName ]
+
+      if( is.function( fn ) )
+        api[ propertyName ] = mapResult( fn, handleResult )
+    })
+  }
+
   const statics = {}
 
   addStatics( modules, statics )
@@ -129,5 +161,7 @@ const withoutPrefixes = ( api, prefixes ) => {
     return newApi
   }, {} )
 }
+
+const mapResult = ( fn, map ) => ( ...args ) => map( fn( ...args ) )
 
 module.exports = ApiFactory

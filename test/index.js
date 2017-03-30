@@ -156,6 +156,21 @@ describe( 'ApiFactory', () => {
       }
     }
 
+    const addModule = ( api, state ) => {
+      return {
+        add: point => {
+          const raw = api._getState( point )
+
+          const newPoint = {
+            x: raw.x + api.x(),
+            y: raw.y + api.y()
+          }
+
+          return api( newPoint )
+        }
+      }
+    }
+
     it( 'modules can call private', () => {
       const Point = ApiFactory( [ pointModule, privateModule, publicModule ] )
 
@@ -195,6 +210,18 @@ describe( 'ApiFactory', () => {
       const stateKey = p1.stateKey()
 
       assert.equal( stateKey, 'state-new-5.5-7.5' )
+    })
+
+    it( 'returned values do not expose private', () => {
+      const Point = ApiFactory(
+        [ pointModule, addModule ]
+      )
+
+      const p1 = Point({ x: 5, y: 7 })
+      const p2 = Point({ x: 2, y: 3 })
+      const p3 = p1.add( p2 )
+
+      assert.equal( p3._getState, undefined )
     })
   })
 

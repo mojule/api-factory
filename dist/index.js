@@ -45,6 +45,9 @@ var ApiFactory = function ApiFactory() {
 
       if (prefixes.length > 0) {
         api = withoutPrefixes(api, prefixes);
+
+        handleResults(api);
+
         apiToState.set(api, state);
       }
 
@@ -117,6 +120,34 @@ var ApiFactory = function ApiFactory() {
     modules.forEach(addStatic);
   };
 
+  var handleResult = function handleResult(result) {
+    if (result && is.function(result._getState)) {
+      var resultState = result._getState();
+
+      return Api(resultState);
+    }
+
+    if (is.array(result)) {
+      return result.map(handleResult);
+    }
+
+    if (is.object(result)) {
+      Object.keys(result).forEach(function (key) {
+        result[key] = handleResult(result[key]);
+      });
+    }
+
+    return result;
+  };
+
+  var handleResults = function handleResults(api) {
+    Object.keys(api).forEach(function (propertyName) {
+      var fn = api[propertyName];
+
+      if (is.function(fn)) api[propertyName] = mapResult(fn, handleResult);
+    });
+  };
+
   var statics = {};
 
   addStatics(modules, statics);
@@ -142,6 +173,12 @@ var withoutPrefixes = function withoutPrefixes(api, prefixes) {
 
     return newApi;
   }, {});
+};
+
+var mapResult = function mapResult(fn, map) {
+  return function () {
+    return map(fn.apply(undefined, arguments));
+  };
 };
 
 module.exports = ApiFactory;
