@@ -331,6 +331,64 @@ const addPointOrNumbersModules = ( api, state ) => {
 Following on from this, you could extend this decorator or add a new one that
 also accepts raw data as an argument.
 
+### Scoping functions
+
+#### Private functions
+
+You can make plugin functions available to other plugins, but not available on
+the external API by prefixing them with an underscore.
+
+To make them also visible on the external API (for example, for debugging or
+testing purposes), pass the option `removePrivate: false`.
+
+Private functions can be overridden like any other API function.
+
+```javascript
+const loggerModule = ( api, state ) => {
+  return {
+    _logState: () => console.log( state )
+  }
+}
+```
+
+#### Static functions
+
+Static functions work like private functions, but are prefixed with a `$` sign.
+
+They are attached to the returned API factory instead of instances of the API,
+with the `$` prefix removed. When called by internal functions you still need
+to use the `$` prefix.
+
+To make them also visible on the external API instances use the option
+`removeStatic: false`.
+
+Statics should not access state, and should only call other static methods on
+the `api` argument, otherwise an exception may be thrown. It is fine for
+non-static methods to call static methods.
+
+```javascript
+const staticModule = ( api, state ) => {
+  return {
+    $isIntegerPoint: p =>
+      p && typeof p === 'object' && Number.isInteger( p.x ) && Number.isInteger( p.y ),
+    isIntegerPoint: () => api.$isIntegerPoint( state )
+  }
+}
+
+const Point = ApiFactory(
+  [ pointModule, staticModule ],
+  { isState: isObjectPoint }
+)
+
+const p1 = { x: 5, y: 7 }
+
+console.log( Point.isIntegerPoint( p1 ) ) // true
+
+const point1 = Point( p1 )
+
+console.log( point1.isIntegerPoint() ) // true
+```
+
 ### Options
 
 We can also pass some options to `ApiFactory`. Any options passed will override
@@ -460,60 +518,4 @@ const point2 = Point( p2 )
 
 console.log( point1.x(), point1.y() ) // 5 7
 console.log( point2.x(), point2.y() ) // 5 7
-```
-
-#### Private functions
-
-You can make plugin functions available to other plugins, but not available on
-the external API by prefixing them with an underscore.
-
-To make them also visible on the external API (for example, for debugging or
-testing purposes), pass the option `removePrivate: false`.
-
-Private functions can be overridden like any other API function.
-
-```javascript
-const loggerModule = ( api, state ) => {
-  return {
-    _logState: () => console.log( state )
-  }
-}
-```
-
-#### Static functions
-
-Static functions work like private functions, but are prefixed with a `$` sign.
-
-They are attached to the returned API factory instead of instances of the API,
-with the `$` prefix removed. When called by internal functions you still need
-to use the `$` prefix.
-
-To make them also visible on the external API instances use the option
-`removeStatic: false`.
-
-Statics should not access state, and should only call other static methods on
-the `api` argument, otherwise an exception may be thrown. It is fine for
-non-static methods to call static methods.
-
-```javascript
-const staticModule = ( api, state ) => {
-  return {
-    $isIntegerPoint: p =>
-      p && typeof p === 'object' && Number.isInteger( p.x ) && Number.isInteger( p.y ),
-    isIntegerPoint: () => api.$isIntegerPoint( state )
-  }
-}
-
-const Point = ApiFactory(
-  [ pointModule, staticModule ],
-  { isState: isObjectPoint }
-)
-
-const p1 = { x: 5, y: 7 }
-
-console.log( Point.isIntegerPoint( p1 ) ) // true
-
-const point1 = Point( p1 )
-
-console.log( point1.isIntegerPoint() ) // true
 ```
