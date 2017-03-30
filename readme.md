@@ -348,11 +348,9 @@ you can have your module accept a third argument, `getState`:
 
 #### Static functions
 
-Static functions work like private functions, but are prefixed with a `$` sign.
-
-They are attached to the returned API factory as well as to instances of the
-API, with the `$` prefix removed. When called by internal functions you also
-call them without the `$` prefix.
+Static functions are attached to the returned API factory as well as to
+instances of the API, with the `$` prefix removed. When called by internal
+functions you also call them without the `$` prefix.
 
 Statics should not access state, and should only call other static methods on
 the `api` argument, otherwise an exception may be thrown. It is fine for
