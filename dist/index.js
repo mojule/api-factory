@@ -31,9 +31,10 @@ var ApiFactory = function ApiFactory() {
 
   var internalCache = new Map();
   var externalCache = new Map();
+  var apiToState = new Map();
 
   var Api = function Api(state) {
-    return CachedApi(state, externalCache, function (state) {
+    return CachedApi(state, externalCache, function (state, key) {
       var api = Internal(state);
 
       var prefixes = [];
@@ -42,7 +43,10 @@ var ApiFactory = function ApiFactory() {
 
       if (removeStatic) prefixes.push('$');
 
-      if (prefixes.length > 0) api = withoutPrefixes(api, prefixes);
+      if (prefixes.length > 0) {
+        api = withoutPrefixes(api, prefixes);
+        apiToState.set(api, state);
+      }
 
       return api;
     });
@@ -54,7 +58,11 @@ var ApiFactory = function ApiFactory() {
         return Internal(newState);
       };
 
-      api._state = state;
+      apiToState.set(api, state);
+
+      api._getState = function (currentApi) {
+        return apiToState.get(currentApi);
+      };
 
       addModules(modules, api, state);
 
@@ -71,7 +79,7 @@ var ApiFactory = function ApiFactory() {
 
     if (cache.has(key)) return cache.get(key);
 
-    var api = getApi(state);
+    var api = getApi(state, key);
 
     cache.set(key, api);
 

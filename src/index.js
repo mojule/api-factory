@@ -25,8 +25,9 @@ const ApiFactory = ( modules = [], options = {} ) => {
 
   const internalCache = new Map()
   const externalCache = new Map()
+  const apiToState = new Map()
 
-  const Api = state => CachedApi( state, externalCache, state => {
+  const Api = state => CachedApi( state, externalCache, ( state, key ) => {
     let api = Internal( state )
 
     const prefixes = []
@@ -37,8 +38,10 @@ const ApiFactory = ( modules = [], options = {} ) => {
     if( removeStatic )
       prefixes.push( '$' )
 
-    if( prefixes.length > 0 )
+    if( prefixes.length > 0 ) {
       api = withoutPrefixes( api, prefixes )
+      apiToState.set( api, state )
+    }
 
     return api
   })
@@ -46,7 +49,9 @@ const ApiFactory = ( modules = [], options = {} ) => {
   const Internal = state => CachedApi( state, internalCache, state => {
     const api = newState => Internal( newState )
 
-    api._state = state
+    apiToState.set( api, state )
+
+    api._getState = currentApi => apiToState.get( currentApi )
 
     addModules( modules, api, state )
 
@@ -65,7 +70,7 @@ const ApiFactory = ( modules = [], options = {} ) => {
     if( cache.has( key ) )
       return cache.get( key )
 
-    const api = getApi( state )
+    const api = getApi( state, key )
 
     cache.set( key, api )
 

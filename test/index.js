@@ -53,18 +53,23 @@ describe( 'ApiFactory', () => {
   it( 'State available internally', () => {
     const internalStateModule = ( api, state ) => {
       return {
-        internalState: () => api._state
+        externalState: current => api._getState( current ),
+        internalState: () => api._getState( api )
       }
     }
 
     const Point = ApiFactory( [ pointModule, internalStateModule ] )
 
-    const point = Point({ x: 5, y: 7 })
+    const point1 = Point({ x: 5, y: 7 })
+    const point2 = Point({ x: 3, y: 9 })
 
-    const state = point.internalState()
+    const state1 = point1.internalState()
+    const state2 = point1.externalState( point2 )
 
-    assert.equal( state.x, 5 )
-    assert.equal( state.y, 7 )
+    assert.equal( state1.x, 5 )
+    assert.equal( state1.y, 7 )
+    assert.equal( state2.x, 3 )
+    assert.equal( state2.y, 9 )
   })
 
   it( 'Hides state', () => {
@@ -201,6 +206,13 @@ describe( 'ApiFactory', () => {
       }
     }
 
+    const staticStaticsModule = ( api, state ) => {
+      return {
+        $isPoint: isPoint,
+        $isIntegerPoint: p => api.isPoint( p ) && isIntegerPoint( p )
+      }
+    }
+
     const overrideStaticModule = ( api, state ) => {
       return {
         $isPoint: isIntegerPoint
@@ -223,6 +235,14 @@ describe( 'ApiFactory', () => {
       const point1 = Point( p1 )
 
       assert( point1.isPoint() )
+    })
+
+    it( 'statics can call statics', () => {
+      const Point = ApiFactory( [ pointModule, staticStaticsModule ] )
+
+      const p1 = { x: 5, y: 7 }
+
+      assert( Point.isIntegerPoint( p1 ) )
     })
 
     it( 'removes statics', () => {

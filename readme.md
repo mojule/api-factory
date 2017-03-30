@@ -334,8 +334,8 @@ also accepts raw data as an argument.
 ### Scoping API members
 
 Sometimes you may need to access the state of another instance - it is attached
-to the `api` argument as _state, but won't be exposed to external consuming
-code.
+to the `api` argument as `api._getState( instance )`, but won't be exposed to
+external consuming code.
 
 You can also make functions in your modules that don't need the state, so
 they're available without creating instances. You can also make functions that
