@@ -51,10 +51,10 @@ describe( 'ApiFactory', () => {
   })
 
   it( 'State available internally', () => {
-    const internalStateModule = ( api, state ) => {
+    const internalStateModule = ( api, state, getState ) => {
       return {
-        externalState: current => api._getState( current ),
-        internalState: () => api._getState( api )
+        externalState: current => getState( current ),
+        internalState: () => getState( api )
       }
     }
 
@@ -135,101 +135,11 @@ describe( 'ApiFactory', () => {
     assert.equal( i1.y(), 7 )
   })
 
-  describe( 'private modules', () => {
-    const privateModule = ( api, state ) => {
-      return {
-        _stateKey: () => state.x + '-' + state.y
-      }
-    }
-
-    const publicModule = ( api, state ) => {
-      return {
-        stateKey: () => 'state-' + api._stateKey()
-      }
-    }
-
-    const overridePrivateModule = ( api, state ) => {
-      const { _stateKey } = api
-
-      return {
-        _stateKey: () => 'new-' + _stateKey()
-      }
-    }
-
-    const addModule = ( api, state ) => {
-      return {
-        add: point => {
-          const raw = api._getState( point )
-
-          const newPoint = {
-            x: raw.x + api.x(),
-            y: raw.y + api.y()
-          }
-
-          return api( newPoint )
-        }
-      }
-    }
-
-    it( 'modules can call private', () => {
-      const Point = ApiFactory( [ pointModule, privateModule, publicModule ] )
-
-      const p1 = Point({ x: 5.5, y: 7.5 })
-
-      const stateKey = p1.stateKey()
-
-      assert.equal( stateKey, 'state-5.5-7.5' )
-    })
-
-    it( 'removes private', () => {
-      const Point = ApiFactory( [ pointModule, privateModule, publicModule ] )
-
-      const p1 = Point({ x: 5.5, y: 7.5 })
-
-      assert.equal( typeof p1._stateKey, 'undefined' )
-    })
-
-    it( 'retains private', () => {
-      const Point = ApiFactory(
-        [ pointModule, privateModule, publicModule ],
-        { removePrivate: false }
-      )
-
-      const p1 = Point({ x: 5.5, y: 7.5 })
-
-      assert.equal( typeof p1._stateKey, 'function' )
-    })
-
-    it( 'overrides private', () => {
-      const Point = ApiFactory(
-        [ pointModule, privateModule, publicModule, overridePrivateModule ]
-      )
-
-      const p1 = Point({ x: 5.5, y: 7.5 })
-
-      const stateKey = p1.stateKey()
-
-      assert.equal( stateKey, 'state-new-5.5-7.5' )
-    })
-
-    it( 'returned values do not expose private', () => {
-      const Point = ApiFactory(
-        [ pointModule, addModule ]
-      )
-
-      const p1 = Point({ x: 5, y: 7 })
-      const p2 = Point({ x: 2, y: 3 })
-      const p3 = p1.add( p2 )
-
-      assert.equal( p3._getState, undefined )
-    })
-  })
-
   describe( 'static modules', () => {
     const staticModule = ( api, state ) => {
       return {
         $isPoint: isPoint,
-        isPoint: () => api.$isPoint( state )
+        isValid: () => api.isPoint( state )
       }
     }
 
@@ -261,7 +171,7 @@ describe( 'ApiFactory', () => {
       const p1 = { x: 5.5, y: 7.5 }
       const point1 = Point( p1 )
 
-      assert( point1.isPoint() )
+      assert( point1.isValid() )
     })
 
     it( 'statics can call statics', () => {
@@ -270,27 +180,6 @@ describe( 'ApiFactory', () => {
       const p1 = { x: 5, y: 7 }
 
       assert( Point.isIntegerPoint( p1 ) )
-    })
-
-    it( 'removes statics', () => {
-      const Point = ApiFactory( [ pointModule, staticModule ] )
-
-      const p1 = { x: 5.5, y: 7.5 }
-      const point1 = Point( p1 )
-
-      assert.equal( typeof point1.$isPoint, 'undefined' )
-    })
-
-    it( 'retains statics', () => {
-      const Point = ApiFactory(
-        [ pointModule, staticModule ],
-        { removeStatic: false }
-      )
-
-      const p1 = { x: 5.5, y: 7.5 }
-      const point1 = Point( p1 )
-
-      assert.equal( typeof point1.$isPoint, 'function' )
     })
 
     it( 'overrides statics', () => {
@@ -307,8 +196,8 @@ describe( 'ApiFactory', () => {
       const point1 = Point( p1 )
       const point2 = Point( p2 )
 
-      assert( point1.isPoint() )
-      assert( !point2.isPoint() )
+      assert( point1.isValid() )
+      assert( !point2.isValid() )
     })
   })
 })

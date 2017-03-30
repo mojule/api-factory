@@ -331,44 +331,28 @@ const addPointOrNumbersModules = ( api, state ) => {
 Following on from this, you could extend this decorator or add a new one that
 also accepts raw data as an argument.
 
-### Scoping API members
+### Advanced
 
-Sometimes you may need to access the state of another instance - it is attached
-to the `api` argument as `api._getState( instance )`, but won't be exposed to
-external consuming code.
+#### Get the state of another instance
 
-You can also make functions in your modules that don't need the state, so
-they're available without creating instances. You can also make functions that
-are not exposed in the final instance, but are available to your other modules:
-
-#### Private functions
-
-You can make plugin functions available to other plugins, but not available on
-the external API by prefixing them with an underscore.
-
-To make them also visible on the external API (for example, for debugging or
-testing purposes), pass the option `removePrivate: false`.
-
-Private functions can be overridden like any other API function.
+Sometimes you may need to access the state of another instance - in that case,
+you can have your module accept a third argument, `getState`:
 
 ```javascript
-const loggerModule = ( api, state ) => {
-  return {
-    _logState: () => console.log( state )
+  const logPointStateModule = ( api, state, getState ) => {
+    return {
+      logPoint: point => console.log( getState( point ) )
+    }
   }
-}
 ```
 
 #### Static functions
 
 Static functions work like private functions, but are prefixed with a `$` sign.
 
-They are attached to the returned API factory instead of instances of the API,
-with the `$` prefix removed. When called by internal functions you still need
-to use the `$` prefix.
-
-To make them also visible on the external API instances use the option
-`removeStatic: false`.
+They are attached to the returned API factory as well as to instances of the
+API, with the `$` prefix removed. When called by internal functions you also
+call them without the `$` prefix.
 
 Statics should not access state, and should only call other static methods on
 the `api` argument, otherwise an exception may be thrown. It is fine for
@@ -379,7 +363,7 @@ const staticModule = ( api, state ) => {
   return {
     $isIntegerPoint: p =>
       p && typeof p === 'object' && Number.isInteger( p.x ) && Number.isInteger( p.y ),
-    isIntegerPoint: () => api.$isIntegerPoint( state )
+    isValid: () => api.isIntegerPoint( state )
   }
 }
 
@@ -394,7 +378,7 @@ console.log( Point.isIntegerPoint( p1 ) ) // true
 
 const point1 = Point( p1 )
 
-console.log( point1.isIntegerPoint() ) // true
+console.log( point1.isValid() ) // true
 ```
 
 ### Options
@@ -406,9 +390,7 @@ the defaults:
 const defaultOptions = {
   getStateKey: state => state,
   isState: state => true,
-  exposeState: false,
-  removePrivate: true,
-  removeStatic: true
+  exposeState: false
 }
 ```
 

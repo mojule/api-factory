@@ -5,9 +5,7 @@ const is = require( '@mojule/is' )
 const defaultOptions = {
   getStateKey: state => state,
   isState: state => true,
-  exposeState: false,
-  removePrivate: true,
-  removeStatic: true
+  exposeState: false
 }
 
 const ApiFactory = ( modules = [], options = {} ) => {
@@ -17,129 +15,49 @@ const ApiFactory = ( modules = [], options = {} ) => {
   if( !validModules( modules ) )
     throw new Error( 'Expected modules to be an array of functions' )
 
-  const {
-    getStateKey, isState, exposeState, removePrivate, removeStatic
-  } = Object.assign(
-    {}, defaultOptions, options
-  )
+  options = Object.assign( {}, defaultOptions, options )
 
-  const internalCache = new Map()
-  const externalCache = new Map()
-  const apiToState = new Map()
+  const { getStateKey, isState, exposeState } = options
 
-  const Api = state => CachedApi( state, externalCache, ( state, key ) => {
-    let api = Internal( state )
+  const apiCache = new Map()
+  const stateCache = new Map()
 
-    const prefixes = []
+  const getState = instance => stateCache.get( instance )
 
-    if( removePrivate )
-      prefixes.push( '_' )
-
-    if( removeStatic )
-      prefixes.push( '$' )
-
-    if( prefixes.length > 0 ) {
-      api = withoutPrefixes( api, prefixes )
-
-      handleResults( api )
-
-      apiToState.set( api, state )
-    }
-
-    return api
-  })
-
-  const Internal = state => CachedApi( state, internalCache, state => {
-    const api = newState => Internal( newState )
-
-    apiToState.set( api, state )
-
-    api._getState = currentApi => apiToState.get( currentApi )
-
-    addModules( modules, api, state )
-
-    if( exposeState )
-      Object.assign( api, { state } )
-
-    return api
-  })
-
-  const CachedApi = ( state, cache, getApi ) => {
+  const Api = state => {
     if( !isState( state ) )
       throw new Error( 'Api state argument fails isState test' )
 
     const key = getStateKey( state )
 
-    if( cache.has( key ) )
-      return cache.get( key )
+    if( apiCache.has( key ) )
+      return apiCache.get( key )
 
-    const api = getApi( state, key )
+    const api = newState => Api( newState )
 
-    cache.set( key, api )
+    const plugin = mod => Object.assign( api, mod( api, state, getState ) )
+
+    if( exposeState )
+      Object.assign( api, { state } )
+
+    stateCache.set( api, state )
+
+    modules.forEach( plugin )
+
+    Object.keys( api ).forEach( key => {
+      if( key.startsWith( '$' ) ){
+        api[ key.slice( 1 ) ] = api[ key ]
+
+        delete api[ key ]
+      }
+    })
+
+    apiCache.set( key, api )
 
     return api
   }
 
-  const addModules = ( modules, api, state ) => {
-    const addModule = module =>
-      Object.assign( api, module( api, state )  )
-
-    modules.forEach( addModule )
-  }
-
-  const addStatics = ( modules, api ) => {
-    const addStatic = module => {
-      const fns = module( api )
-      const fnames = Object.keys( fns )
-
-      const staticNames = fnames.filter( name => name.startsWith( '$' ) )
-
-      const staticFns = staticNames.reduce( ( statics, name ) => {
-        const externalName = name.slice( 1 )
-
-        statics[ externalName ] = fns[ name ]
-
-        return statics
-      }, {} )
-
-      Object.assign( api, staticFns )
-    }
-
-    modules.forEach( addStatic )
-  }
-
-  const handleResult = result => {
-    if( result && is.function( result._getState ) ){
-      const resultState = result._getState()
-
-      return Api( resultState )
-    }
-
-    if( is.array( result ) ){
-      return result.map( handleResult )
-    }
-
-    if( is.object( result ) ){
-      Object.keys( result ).forEach( key => {
-        result[ key ] = handleResult( result[ key ] )
-      })
-    }
-
-    return result
-  }
-
-  const handleResults = api => {
-    Object.keys( api ).forEach( propertyName => {
-      const fn = api[ propertyName ]
-
-      if( is.function( fn ) )
-        api[ propertyName ] = mapResult( fn, handleResult )
-    })
-  }
-
-  const statics = {}
-
-  addStatics( modules, statics )
+  const statics = Statics( modules )
 
   Object.assign( Api, statics, { isState } )
 
@@ -149,19 +67,21 @@ const ApiFactory = ( modules = [], options = {} ) => {
 const validModules = modules =>
   is.array( modules ) && modules.every( is.function )
 
-const withoutPrefixes = ( api, prefixes ) => {
-  const propertyNames = Object.keys( api )
+const Statics = modules =>
+  modules.reduce( ( statics, mod ) => {
+    const fns = mod( statics )
 
-  return propertyNames.reduce( ( newApi, name ) => {
-    const hasPrefix = prefixes.some( prefix => name.startsWith( prefix ) )
+    const staticNames = Object.keys( fns ).filter( name =>
+      name.startsWith( '$' )
+    )
 
-    if( !hasPrefix )
-      newApi[ name ] = api[ name ]
+    staticNames.forEach( name => {
+      const unprefixed = name.slice( 1 )
 
-    return newApi
+      statics[ unprefixed ] = fns[ name ]
+    })
+
+    return statics
   }, {} )
-}
-
-const mapResult = ( fn, map ) => ( ...args ) => map( fn( ...args ) )
 
 module.exports = ApiFactory
