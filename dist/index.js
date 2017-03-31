@@ -70,7 +70,7 @@ var ApiFactory = function ApiFactory() {
     return api;
   };
 
-  var statics = Statics(modules);
+  var statics = Statics(Api, modules);
 
   Object.assign(Api, statics, { isState: isState });
 
@@ -81,7 +81,7 @@ var validModules = function validModules(modules) {
   return is.array(modules) && modules.every(is.function);
 };
 
-var Statics = function Statics(modules) {
+var Statics = function Statics(Api, modules) {
   return modules.reduce(function (statics, mod) {
     var fns = mod(statics);
 
@@ -96,7 +96,7 @@ var Statics = function Statics(modules) {
     });
 
     return statics;
-  }, {});
+  }, Api);
 };
 
 module.exports = ApiFactory;

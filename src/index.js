@@ -60,7 +60,7 @@ const ApiFactory = ( modules = [], options = {} ) => {
     return api
   }
 
-  const statics = Statics( modules )
+  const statics = Statics( Api, modules )
 
   Object.assign( Api, statics, { isState } )
 
@@ -70,7 +70,7 @@ const ApiFactory = ( modules = [], options = {} ) => {
 const validModules = modules =>
   is.array( modules ) && modules.every( is.function )
 
-const Statics = modules =>
+const Statics = ( Api, modules ) =>
   modules.reduce( ( statics, mod ) => {
     const fns = mod( statics )
 
@@ -85,6 +85,6 @@ const Statics = modules =>
     })
 
     return statics
-  }, {} )
+  }, Api )
 
 module.exports = ApiFactory
