@@ -35,7 +35,18 @@ const ApiFactory = ( modules = [], options = {} ) => {
 
     const api = newState => Api( newState )
 
-    const plugin = mod => Object.assign( api, mod( api, state, getState ) )
+    const plugin = mod => {
+      const modApi = mod( api, state, getState )
+
+      Object.keys( modApi ).forEach( key => {
+        if( key.startsWith( '$' ) ){
+          modApi[ key.slice( 1 ) ] = modApi[ key ]
+          delete modApi[ key ]
+        }
+      })
+
+      Object.assign( api, modApi )
+    }
 
     if( exposeState )
       Object.assign( api, { state } )
@@ -43,14 +54,6 @@ const ApiFactory = ( modules = [], options = {} ) => {
     stateCache.set( api, state )
 
     modules.forEach( plugin )
-
-    Object.keys( api ).forEach( key => {
-      if( key.startsWith( '$' ) ){
-        api[ key.slice( 1 ) ] = api[ key ]
-
-        delete api[ key ]
-      }
-    })
 
     apiCache.set( key, api )
 

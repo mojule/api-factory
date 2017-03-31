@@ -47,7 +47,16 @@ var ApiFactory = function ApiFactory() {
     };
 
     var plugin = function plugin(mod) {
-      return Object.assign(api, mod(api, state, getState));
+      var modApi = mod(api, state, getState);
+
+      Object.keys(modApi).forEach(function (key) {
+        if (key.startsWith('$')) {
+          modApi[key.slice(1)] = modApi[key];
+          delete modApi[key];
+        }
+      });
+
+      Object.assign(api, modApi);
     };
 
     if (exposeState) Object.assign(api, { state: state });
@@ -55,14 +64,6 @@ var ApiFactory = function ApiFactory() {
     stateCache.set(api, state);
 
     modules.forEach(plugin);
-
-    Object.keys(api).forEach(function (key) {
-      if (key.startsWith('$')) {
-        api[key.slice(1)] = api[key];
-
-        delete api[key];
-      }
-    });
 
     apiCache.set(key, api);
 
