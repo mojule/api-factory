@@ -15,6 +15,12 @@ describe( 'ApiFactory', () => {
     }
   }
 
+  const fromNumbersModule = ( api, state ) => {
+    return {
+      fromNumbers: ( x, y ) => api( { x, y } )
+    }
+  }
+
   const integerPointModule = ( api, state ) => {
     const { x, y } = api
 
@@ -39,6 +45,23 @@ describe( 'ApiFactory', () => {
 
     assert.equal( point.x(), 5 )
     assert.equal( point.y(), 7 )
+
+    assert.throws( () => ApiFactory( null ) )
+  })
+
+  it( 'No Modules', () => {
+    assert.doesNotThrow( () => ApiFactory() )
+  })  
+
+  it( 'Creates an api instance', () => {
+    const Point = ApiFactory( [ pointModule, fromNumbersModule ] )
+
+    const p1 = Point({ x: 5, y: 7 })
+    const p2 = p1.fromNumbers( 3, 9 )
+
+    assert.equal( p2.x(), 3 )
+    assert.equal( p2.y(), 9 )
+    
   })
 
   it( 'Exposes state', () => {
