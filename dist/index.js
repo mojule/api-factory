@@ -9,7 +9,10 @@ var defaultOptions = {
   isState: function isState(state) {
     return true;
   },
-  exposeState: false
+  exposeState: false,
+  parseState: function parseState() {
+    return arguments.length <= 0 ? undefined : arguments[0];
+  }
 };
 
 var ApiFactory = function ApiFactory() {
@@ -25,7 +28,8 @@ var ApiFactory = function ApiFactory() {
   var _options = options,
       getStateKey = _options.getStateKey,
       isState = _options.isState,
-      exposeState = _options.exposeState;
+      exposeState = _options.exposeState,
+      parseState = _options.parseState;
 
 
   var apiCache = new Map();
@@ -35,15 +39,21 @@ var ApiFactory = function ApiFactory() {
     return stateCache.get(instance);
   };
 
-  var Api = function Api(state) {
+  var Api = function Api() {
+    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+      args[_key] = arguments[_key];
+    }
+
+    var state = parseState.apply(undefined, args);
+
     if (!isState(state)) throw new Error('Api state argument fails isState test');
 
     var key = getStateKey(state);
 
     if (apiCache.has(key)) return apiCache.get(key);
 
-    var api = function api(newState) {
-      return Api(newState);
+    var api = function api() {
+      return Api.apply(undefined, arguments);
     };
 
     var plugin = function plugin(mod) {

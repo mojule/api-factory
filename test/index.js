@@ -2,7 +2,7 @@
 
 const assert = require( 'assert' )
 const is = require( '@mojule/is' )
-const ApiFactory = require( '../dist' )
+const ApiFactory = require( '../src' )
 
 const isNumber = n => typeof n === 'number' && !Number.isNaN( n )
 const isFunction = f => typeof f === 'function'
@@ -51,7 +51,7 @@ describe( 'ApiFactory', () => {
 
   it( 'No Modules', () => {
     assert.doesNotThrow( () => ApiFactory() )
-  })  
+  })
 
   it( 'Creates an api instance', () => {
     const Point = ApiFactory( [ pointModule, fromNumbersModule ] )
@@ -61,7 +61,27 @@ describe( 'ApiFactory', () => {
 
     assert.equal( p2.x(), 3 )
     assert.equal( p2.y(), 9 )
-    
+  })
+
+  it( 'Parses state', () => {
+    const parseState = ( ...args ) => {
+      if( is.number( args[ 0 ] ) && is.number( args[ 1 ] ) )
+        return { x: args[ 0 ], y: args[ 1 ] }
+
+      return args[ 0 ]
+    }
+
+    const Point = ApiFactory( pointModule, { parseState, isState: isPoint } )
+
+    const p1 = Point({ x: 5, y: 7})
+    const p2 = Point( 5, 7 )
+
+    assert.equal( p1.x(), 5 )
+    assert.equal( p1.y(), 7 )
+    assert.equal( p2.x(), 5 )
+    assert.equal( p2.y(), 7 )
+
+    assert.throws( () => Point() )
   })
 
   it( 'Exposes state', () => {

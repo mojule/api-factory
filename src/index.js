@@ -5,7 +5,8 @@ const is = require( '@mojule/is' )
 const defaultOptions = {
   getStateKey: state => state,
   isState: state => true,
-  exposeState: false
+  exposeState: false,
+  parseState: ( ...args ) => args[ 0 ]
 }
 
 const ApiFactory = ( modules = [], options = {} ) => {
@@ -17,14 +18,16 @@ const ApiFactory = ( modules = [], options = {} ) => {
 
   options = Object.assign( {}, defaultOptions, options )
 
-  const { getStateKey, isState, exposeState } = options
+  const { getStateKey, isState, exposeState, parseState } = options
 
   const apiCache = new Map()
   const stateCache = new Map()
 
   const getState = instance => stateCache.get( instance )
 
-  const Api = state => {
+  const Api = ( ...args ) => {
+    const state = parseState( ...args )
+
     if( !isState( state ) )
       throw new Error( 'Api state argument fails isState test' )
 
@@ -33,7 +36,7 @@ const ApiFactory = ( modules = [], options = {} ) => {
     if( apiCache.has( key ) )
       return apiCache.get( key )
 
-    const api = newState => Api( newState )
+    const api = ( ...args ) => Api( ...args )
 
     const plugin = mod => {
       const modApi = mod( api, state, getState )

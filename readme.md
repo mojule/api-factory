@@ -388,7 +388,8 @@ the defaults:
 const defaultOptions = {
   getStateKey: state => state,
   isState: state => true,
-  exposeState: false
+  exposeState: false,
+  parseState: ( ...args ) => args[ 0 ]
 }
 ```
 
@@ -505,4 +506,28 @@ const point2 = Point( p2 )
 
 console.log( point1.x(), point1.y() ) // 5 7
 console.log( point2.x(), point2.y() ) // 5 7
+```
+
+#### Overloading the API factory
+
+You can do a custom parse on the arguments coming into the factory, returning
+a value that will satisfy your `isState` requirement:
+
+```javascript
+const parseState = ( ...args ) => {
+  if( isNumber( args[ 0 ] ) && isNumber( args[ 1 ] ) )
+    return { x: args[ 0 ], y: args[ 1 ] }
+
+  return args[ 0 ]
+}
+
+const Point = ApiFactory( pointModule, { parseState, isState: isPoint } )
+
+const p1 = Point({ x: 5, y: 7})
+const p2 = Point( 5, 7 )
+
+assert.equal( p1.x(), 5 )
+assert.equal( p1.y(), 7 )
+assert.equal( p2.x(), 5 )
+assert.equal( p2.y(), 7 )
 ```
