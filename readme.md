@@ -379,6 +379,27 @@ const point1 = Point( p1 )
 console.log( point1.isValid() ) // true
 ```
 
+#### Overriding options on an existing instance
+
+The following options are attached to the API instance and can be overridden
+after creating the instance:
+
+`isState, parseState, getStateKey`
+
+```javascript
+const Point = ApiFactory( pointModule, { isState: isPoint } )
+
+Point.parseState = ( ...args ) => {
+  if( is.number( args[ 0 ] ) && is.number( args[ 1 ] ) )
+    return { x: args[ 0 ], y: args[ 1 ] }
+
+  return args[ 0 ]
+}
+
+const p1 = Point({ x: 5, y: 7})
+const p2 = Point( 5, 7 )
+```
+
 ### Options
 
 We can also pass some options to `ApiFactory`. Any options passed will override

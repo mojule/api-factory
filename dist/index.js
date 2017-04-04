@@ -44,11 +44,11 @@ var ApiFactory = function ApiFactory() {
       args[_key] = arguments[_key];
     }
 
-    var state = parseState.apply(undefined, args);
+    var state = Api.parseState.apply(Api, args);
 
-    if (!isState(state)) throw new Error('Api state argument fails isState test');
+    if (!Api.isState(state)) throw new Error('Api state argument fails isState test');
 
-    var key = getStateKey(state);
+    var key = Api.getStateKey(state);
 
     if (apiCache.has(key)) return apiCache.get(key);
 
@@ -82,7 +82,7 @@ var ApiFactory = function ApiFactory() {
 
   var statics = Statics(Api, modules);
 
-  Object.assign(Api, statics, { isState: isState });
+  Object.assign(Api, statics, { isState: isState, parseState: parseState, getStateKey: getStateKey });
 
   return Api;
 };

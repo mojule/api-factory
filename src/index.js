@@ -26,12 +26,12 @@ const ApiFactory = ( modules = [], options = {} ) => {
   const getState = instance => stateCache.get( instance )
 
   const Api = ( ...args ) => {
-    const state = parseState( ...args )
+    const state = Api.parseState( ...args )
 
-    if( !isState( state ) )
+    if( !Api.isState( state ) )
       throw new Error( 'Api state argument fails isState test' )
 
-    const key = getStateKey( state )
+    const key = Api.getStateKey( state )
 
     if( apiCache.has( key ) )
       return apiCache.get( key )
@@ -65,7 +65,7 @@ const ApiFactory = ( modules = [], options = {} ) => {
 
   const statics = Statics( Api, modules )
 
-  Object.assign( Api, statics, { isState } )
+  Object.assign( Api, statics, { isState, parseState, getStateKey } )
 
   return Api
 }

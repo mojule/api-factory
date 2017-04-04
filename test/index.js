@@ -38,6 +38,13 @@ describe( 'ApiFactory', () => {
 
   const pointKey = point => `${ point.x } ${ point.y}`
 
+  const parseState = ( ...args ) => {
+    if( is.number( args[ 0 ] ) && is.number( args[ 1 ] ) )
+      return { x: args[ 0 ], y: args[ 1 ] }
+
+    return args[ 0 ]
+  }
+
   it( 'Creates an API', () => {
     const Point = ApiFactory( pointModule )
 
@@ -64,14 +71,23 @@ describe( 'ApiFactory', () => {
   })
 
   it( 'Parses state', () => {
-    const parseState = ( ...args ) => {
-      if( is.number( args[ 0 ] ) && is.number( args[ 1 ] ) )
-        return { x: args[ 0 ], y: args[ 1 ] }
-
-      return args[ 0 ]
-    }
-
     const Point = ApiFactory( pointModule, { parseState, isState: isPoint } )
+
+    const p1 = Point({ x: 5, y: 7})
+    const p2 = Point( 5, 7 )
+
+    assert.equal( p1.x(), 5 )
+    assert.equal( p1.y(), 7 )
+    assert.equal( p2.x(), 5 )
+    assert.equal( p2.y(), 7 )
+
+    assert.throws( () => Point() )
+  })
+
+  it( 'Can override parseState on the API instance', () => {
+    const Point = ApiFactory( pointModule, { isState: isPoint } )
+
+    Point.parseState = parseState
 
     const p1 = Point({ x: 5, y: 7})
     const p2 = Point( 5, 7 )
@@ -137,6 +153,17 @@ describe( 'ApiFactory', () => {
     assert.throws( () => Point({ x: 5, y: null }) )
   })
 
+  it( 'Can override isState on the API instance', () => {
+    const Point = ApiFactory( pointModule )
+
+    Point.isState = isPoint
+
+    assert.doesNotThrow( () => Point({ x: 5, y: 7 }) )
+    assert.throws( () => Point() )
+    assert.throws( () => Point({ x: 5 }) )
+    assert.throws( () => Point({ x: 5, y: null }) )
+  })
+
   it( 'Caches with getStateKey', () => {
     const options = {
       isState: isPoint,
@@ -144,6 +171,30 @@ describe( 'ApiFactory', () => {
     }
 
     const Point = ApiFactory( pointModule, options )
+
+    const p1 = Point({ x: 5, y: 7 })
+    const p2 = Point({ y: 7, x: 5 })
+    const p3 = Point({ x: 5, y: 0 })
+
+    assert.equal( p1, p2 )
+    assert.notEqual( p1, p3 )
+
+    const DefaultStateKey = ApiFactory( pointModule )
+
+    const d1 = DefaultStateKey({ x: 5, y: 7 })
+    const d2 = DefaultStateKey({ y: 7, x: 5 })
+    const d3 = DefaultStateKey({ x: 5, y: 0 })
+
+    assert.notEqual( d1, d2 )
+    assert.notEqual( d1, d3 )
+  })
+
+  it( 'Can override getStateKey on the API instance', () => {
+    const options = { isState: isPoint }
+
+    const Point = ApiFactory( pointModule, options )
+
+    Point.getStateKey = pointKey
 
     const p1 = Point({ x: 5, y: 7 })
     const p2 = Point({ y: 7, x: 5 })
