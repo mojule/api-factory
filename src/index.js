@@ -6,7 +6,8 @@ const defaultOptions = {
   getStateKey: state => state,
   isState: state => true,
   exposeState: false,
-  parseState: ( ...args ) => args[ 0 ]
+  parseState: ( ...args ) => args[ 0 ],
+  onCreate: api => {}
 }
 
 const ApiFactory = ( modules = [], options = {} ) => {
@@ -18,7 +19,7 @@ const ApiFactory = ( modules = [], options = {} ) => {
 
   options = Object.assign( {}, defaultOptions, options )
 
-  const { getStateKey, isState, exposeState, parseState } = options
+  const { getStateKey, isState, exposeState, parseState, onCreate } = options
 
   const apiCache = new Map()
   const stateCache = new Map()
@@ -60,12 +61,14 @@ const ApiFactory = ( modules = [], options = {} ) => {
 
     apiCache.set( key, api )
 
+    Api.onCreate( api )
+
     return api
   }
 
   const statics = Statics( Api, modules )
 
-  Object.assign( Api, statics, { isState, parseState, getStateKey } )
+  Object.assign( Api, statics, { isState, parseState, getStateKey, onCreate } )
 
   return Api
 }

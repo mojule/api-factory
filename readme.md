@@ -379,27 +379,6 @@ const point1 = Point( p1 )
 console.log( point1.isValid() ) // true
 ```
 
-#### Overriding options on an existing instance
-
-The following options are attached to the API instance and can be overridden
-after creating the instance:
-
-`isState, parseState, getStateKey`
-
-```javascript
-const Point = ApiFactory( pointModule, { isState: isPoint } )
-
-Point.parseState = ( ...args ) => {
-  if( is.number( args[ 0 ] ) && is.number( args[ 1 ] ) )
-    return { x: args[ 0 ], y: args[ 1 ] }
-
-  return args[ 0 ]
-}
-
-const p1 = Point({ x: 5, y: 7})
-const p2 = Point( 5, 7 )
-```
-
 ### Options
 
 We can also pass some options to `ApiFactory`. Any options passed will override
@@ -410,7 +389,8 @@ const defaultOptions = {
   getStateKey: state => state,
   isState: state => true,
   exposeState: false,
-  parseState: ( ...args ) => args[ 0 ]
+  parseState: ( ...args ) => args[ 0 ],
+  onCreate: api => {}
 }
 ```
 
@@ -542,13 +522,47 @@ const parseState = ( ...args ) => {
   return args[ 0 ]
 }
 
-const Point = ApiFactory( pointModule, { parseState, isState: isPoint } )
+const Point = ApiFactory( pointModule, { parseState } )
 
-const p1 = Point({ x: 5, y: 7})
+const p1 = Point({ x: 5, y: 7 })
 const p2 = Point( 5, 7 )
 
 assert.equal( p1.x(), 5 )
 assert.equal( p1.y(), 7 )
 assert.equal( p2.x(), 5 )
 assert.equal( p2.y(), 7 )
+```
+
+#### Callback when an api instance is created
+
+You can observe API instances being created with `onCreate`:
+
+```javascript
+const onCreate = p => console.log( 'New point created', p.x(), p.y() )
+
+const Point = ApiFactory( pointModule, { onCreate } )
+
+// New point created 5 7
+const p1 = Point({ x: 5, y: 7 })
+```
+
+#### Overriding options on an existing instance
+
+The following options are attached to the API instance and can be overridden
+after creating the instance:
+
+`isState, parseState, getStateKey, onCreate`
+
+```javascript
+const Point = ApiFactory( pointModule, { isState: isPoint } )
+
+Point.parseState = ( ...args ) => {
+  if( is.number( args[ 0 ] ) && is.number( args[ 1 ] ) )
+    return { x: args[ 0 ], y: args[ 1 ] }
+
+  return args[ 0 ]
+}
+
+const p1 = Point({ x: 5, y: 7})
+const p2 = Point( 5, 7 )
 ```

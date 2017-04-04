@@ -229,6 +229,36 @@ describe( 'ApiFactory', () => {
     assert.equal( i1.y(), 7 )
   })
 
+  it( 'Can override onCreate on the API instance', () => {
+    let value = 0
+
+    const onCreate = p => {
+      value = p.x()
+    }
+
+    const Point = ApiFactory( pointModule )
+
+    Point.onCreate = onCreate
+
+    const p1 = Point({ x: 5, y: 7 })
+
+    assert.equal( value, 5 )
+  })
+
+  it( 'onCreate is called', () => {
+    let value = 0
+
+    const onCreate = p => {
+      value = p.x()
+    }
+
+    const Point = ApiFactory( pointModule, { onCreate } )
+
+    const p1 = Point({ x: 5, y: 7 })
+
+    assert.equal( value, 5 )
+  })
+
   describe( 'static modules', () => {
     const staticModule = ( api, state ) => {
       return {

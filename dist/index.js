@@ -12,7 +12,8 @@ var defaultOptions = {
   exposeState: false,
   parseState: function parseState() {
     return arguments.length <= 0 ? undefined : arguments[0];
-  }
+  },
+  onCreate: function onCreate(api) {}
 };
 
 var ApiFactory = function ApiFactory() {
@@ -29,7 +30,8 @@ var ApiFactory = function ApiFactory() {
       getStateKey = _options.getStateKey,
       isState = _options.isState,
       exposeState = _options.exposeState,
-      parseState = _options.parseState;
+      parseState = _options.parseState,
+      onCreate = _options.onCreate;
 
 
   var apiCache = new Map();
@@ -77,12 +79,14 @@ var ApiFactory = function ApiFactory() {
 
     apiCache.set(key, api);
 
+    Api.onCreate(api);
+
     return api;
   };
 
   var statics = Statics(Api, modules);
 
-  Object.assign(Api, statics, { isState: isState, parseState: parseState, getStateKey: getStateKey });
+  Object.assign(Api, statics, { isState: isState, parseState: parseState, getStateKey: getStateKey, onCreate: onCreate });
 
   return Api;
 };
