@@ -389,7 +389,7 @@ const defaultOptions = {
   getStateKey: state => state,
   isState: state => true,
   exposeState: false,
-  parseState: ( ...args ) => args[ 0 ],
+  stateParsers: [],
   onCreate: api => {}
 }
 ```
@@ -512,25 +512,43 @@ console.log( point2.x(), point2.y() ) // 5 7
 #### Overloading the API factory
 
 You can do a custom parse on the arguments coming into the factory, returning
-a value that will satisfy your `isState` requirement:
+a value that will satisfy your `isState` requirement.
+
+If the arguments aren't what you're looking to handle, don't return anything,
+or return `undefined` and it will fall back to the default behaviour, which is
+`( ...args ) => args[ 0 ]`
+
+You can chain several parsers together this way, the state will be handled by
+the first that doesn't return `undefined`
+
+Your parser handler will get the current Api so that you can call static
+methods if you wish to do so.
 
 ```javascript
-const parseState = ( ...args ) => {
+const parseNumbers = ( Api, ...args ) => {
   if( isNumber( args[ 0 ] ) && isNumber( args[ 1 ] ) )
     return { x: args[ 0 ], y: args[ 1 ] }
-
-  return args[ 0 ]
 }
 
-const Point = ApiFactory( pointModule, { parseState } )
+const parseSingle = ( Api, ...args ) => {
+  if( isNumber( args[ 0 ] ) )
+    return { x: args[ 0 ], y: args[ 0 ] }
+}
+
+const options = { stateParsers: [ parseNumbers, parseSingle ] }
+
+const Point = ApiFactory( pointModule, options )
 
 const p1 = Point({ x: 5, y: 7 })
-const p2 = Point( 5, 7 )
+const p2 = Point( 4, 9 )
+const p3 = Point( 3 )
 
 assert.equal( p1.x(), 5 )
 assert.equal( p1.y(), 7 )
-assert.equal( p2.x(), 5 )
-assert.equal( p2.y(), 7 )
+assert.equal( p2.x(), 4 )
+assert.equal( p2.y(), 9 )
+assert.equal( p3.x(), 3 )
+assert.equal( p3.y(), 3 )
 ```
 
 #### Callback when an api instance is created
@@ -551,18 +569,19 @@ const p1 = Point({ x: 5, y: 7 })
 The following options are attached to the API instance and can be overridden
 after creating the instance:
 
-`isState, parseState, getStateKey, onCreate`
+`isState, getStateKey, onCreate`
+
+All calls made after overriding the function will call the new function.
 
 ```javascript
 const Point = ApiFactory( pointModule, { isState: isPoint } )
 
-Point.parseState = ( ...args ) => {
-  if( is.number( args[ 0 ] ) && is.number( args[ 1 ] ) )
-    return { x: args[ 0 ], y: args[ 1 ] }
-
-  return args[ 0 ]
+Point.isState = state => {
+  return isPoint( state ) && Number.isInteger( state.x ) && Number.isInteger( state.y )
 }
 
-const p1 = Point({ x: 5, y: 7})
-const p2 = Point( 5, 7 )
+const p1 = Point({ x: 5, y: 7 })
+
+// throws
+const p2 = Point({ x: 5.5, y: 7 })
 ```

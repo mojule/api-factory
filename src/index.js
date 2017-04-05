@@ -6,9 +6,11 @@ const defaultOptions = {
   getStateKey: state => state,
   isState: state => true,
   exposeState: false,
-  parseState: ( ...args ) => args[ 0 ],
+  stateParsers: [],
   onCreate: api => {}
 }
+
+const defaultStateParser =  ( Api, ...args ) => args[ 0 ]
 
 const ApiFactory = ( modules = [], options = {} ) => {
   if( !is.array( modules ) )
@@ -19,7 +21,24 @@ const ApiFactory = ( modules = [], options = {} ) => {
 
   options = Object.assign( {}, defaultOptions, options )
 
-  const { getStateKey, isState, exposeState, parseState, onCreate } = options
+  ensureOptions( options )
+
+  const {
+    getStateKey, isState, exposeState, stateParsers, onCreate
+  } = options
+
+  stateParsers.push( defaultStateParser )
+
+  const parseState = ( Api, ...args ) => {
+    let state
+
+    stateParsers.forEach( parser => {
+      if( is.undefined( state ) )
+        state = parser( Api, ...args )
+    })
+
+    return state
+  }
 
   const apiCache = new Map()
   const stateCache = new Map()
@@ -27,7 +46,7 @@ const ApiFactory = ( modules = [], options = {} ) => {
   const getState = instance => stateCache.get( instance )
 
   const Api = ( ...args ) => {
-    const state = Api.parseState( ...args )
+    const state = parseState( Api, ...args )
 
     if( !Api.isState( state ) )
       throw new Error( 'Api state argument fails isState test' )
@@ -68,13 +87,32 @@ const ApiFactory = ( modules = [], options = {} ) => {
 
   const statics = Statics( Api, modules )
 
-  Object.assign( Api, statics, { isState, parseState, getStateKey, onCreate } )
+  Object.assign( Api, statics, { isState, getStateKey, onCreate } )
 
   return Api
 }
 
 const validModules = modules =>
   is.array( modules ) && modules.every( is.function )
+
+const ensureOptions = options => {
+  const { getStateKey, isState, exposeState, stateParsers, onCreate } = options
+
+  if( !is.function( getStateKey ) )
+    throw new Error( 'getStateKey option should be a function' )
+
+  if( !is.function( isState ) )
+    throw new Error( 'isState option should be a function' )
+
+  if( !is.function( onCreate ) )
+    throw new Error( 'onCreate option should be a function' )
+
+  if( !is.boolean( exposeState ) )
+    throw new Error( 'exposeState option should be a boolean' )
+
+  if( !is.array( stateParsers ) || !stateParsers.every( is.function ) )
+    throw new Error( 'stateParsers option should be an array of functions' )
+}
 
 const Statics = ( Api, modules ) =>
   modules.reduce( ( statics, mod ) => {

@@ -38,11 +38,9 @@ describe( 'ApiFactory', () => {
 
   const pointKey = point => `${ point.x } ${ point.y}`
 
-  const parseState = ( ...args ) => {
+  const parseState = ( Api, ...args ) => {
     if( is.number( args[ 0 ] ) && is.number( args[ 1 ] ) )
       return { x: args[ 0 ], y: args[ 1 ] }
-
-    return args[ 0 ]
   }
 
   it( 'Creates an API', () => {
@@ -71,23 +69,7 @@ describe( 'ApiFactory', () => {
   })
 
   it( 'Parses state', () => {
-    const Point = ApiFactory( pointModule, { parseState, isState: isPoint } )
-
-    const p1 = Point({ x: 5, y: 7})
-    const p2 = Point( 5, 7 )
-
-    assert.equal( p1.x(), 5 )
-    assert.equal( p1.y(), 7 )
-    assert.equal( p2.x(), 5 )
-    assert.equal( p2.y(), 7 )
-
-    assert.throws( () => Point() )
-  })
-
-  it( 'Can override parseState on the API instance', () => {
-    const Point = ApiFactory( pointModule, { isState: isPoint } )
-
-    Point.parseState = parseState
+    const Point = ApiFactory( pointModule, { stateParsers: [ parseState ], isState: isPoint } )
 
     const p1 = Point({ x: 5, y: 7})
     const p2 = Point( 5, 7 )
@@ -322,6 +304,28 @@ describe( 'ApiFactory', () => {
 
       assert( point1.isValid() )
       assert( !point2.isValid() )
+    })
+  })
+
+  describe( 'Invalid options', () => {
+    it( 'getStateKey', () => {
+      assert.throws( () => ApiFactory( pointModule, { getStateKey: {} } ) )
+    })
+
+    it( 'isState', () => {
+      assert.throws( () => ApiFactory( pointModule, { isState: {} } ) )
+    })
+
+    it( 'exposeState', () => {
+      assert.throws( () => ApiFactory( pointModule, { exposeState: {} } ) )
+    })
+
+    it( 'onCreate', () => {
+      assert.throws( () => ApiFactory( pointModule, { onCreate: {} } ) )
+    })
+
+    it( 'stateParsers', () => {
+      assert.throws( () => ApiFactory( pointModule, { stateParsers: {} } ) )
     })
   })
 })
