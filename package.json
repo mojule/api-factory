@@ -1,6 +1,6 @@
 {
   "name": "@mojule/api-factory",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Generate APIs over a state",
   "main": "index.js",
   "scripts": {
@@ -27,6 +27,6 @@
     "mocha": "^3.2.0"
   },
   "dependencies": {
-    "@mojule/is": "^0.1.1"
+    "@mojule/is": "^0.1.2"
   }
 }
