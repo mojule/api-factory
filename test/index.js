@@ -38,9 +38,15 @@ describe( 'ApiFactory', () => {
 
   const pointKey = point => `${ point.x } ${ point.y}`
 
-  const parseState = ( Api, ...args ) => {
-    if( is.number( args[ 0 ] ) && is.number( args[ 1 ] ) )
-      return { x: args[ 0 ], y: args[ 1 ] }
+  const createStateModule = api => {
+    return {
+      $createState: ( ...args ) => {
+        if( is.number( args[ 0 ] ) && is.number( args[ 1 ] ) )
+          return { x: args[ 0 ], y: args[ 1 ] }
+
+        return args[ 0 ]
+      }
+    }
   }
 
   it( 'Creates an API', () => {
@@ -68,8 +74,8 @@ describe( 'ApiFactory', () => {
     assert.equal( p2.y(), 9 )
   })
 
-  it( 'Parses state', () => {
-    const Point = ApiFactory( pointModule, { stateParsers: [ parseState ], isState: isPoint } )
+  it( 'createState plugin', () => {
+    const Point = ApiFactory( [ pointModule, createStateModule ], { isState: isPoint } )
 
     const p1 = Point({ x: 5, y: 7})
     const p2 = Point( 5, 7 )
@@ -322,10 +328,6 @@ describe( 'ApiFactory', () => {
 
     it( 'onCreate', () => {
       assert.throws( () => ApiFactory( pointModule, { onCreate: {} } ) )
-    })
-
-    it( 'stateParsers', () => {
-      assert.throws( () => ApiFactory( pointModule, { stateParsers: {} } ) )
     })
   })
 })

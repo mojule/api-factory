@@ -9,8 +9,9 @@ Compose an API over a state. Allows use cases like:
 - Controlling mutations of state (allows for undo/redo etc)
 
 We use this internally to get a single unified API that works over various tree
-formats, particularly an API over the browser DOM/a virtual DOM ala jQuery, with
-various custom plugins for different use cases and to keep the core API compact.
+formats, particularly an API over the browser DOM/a virtual DOM a la jQuery,
+with various custom plugins for different use cases and to keep the core API
+compact.
 
 ## Install
 
@@ -90,7 +91,7 @@ instead of using the state argument, let's redo the above example using the
 const coreModule = ( api, state ) => {
   return {
     add: ( x, y ) => {
-      const newX = api.x() + x
+      const newX = api.x() + x // references api instead of state
       const newY = api.y() + y
 
       return { x: newX, y: newY }
@@ -379,6 +380,46 @@ const point1 = Point( p1 )
 console.log( point1.isValid() ) // true
 ```
 
+#### Overloading arguments to the API
+
+You can do a custom handling on the arguments coming into the factory, returning
+a value that will satisfy your `isState` requirement.
+
+Immediately upon being called with potential state arguments, the Api generated
+by ApiFactory will check if there is a static method `createState` - if there
+is, it will pass its args to that in order to get the state. If there isn't, it
+will use the first arg passed to Api
+
+```javascript
+
+const createStateModule = api => {
+  return {
+    $createState: ( ...args ) => {
+      if( isNumber( args[ 0 ] ) && isNumber( args[ 1 ] ) )
+        return { x: args[ 0 ], y: args[ 1 ] }
+
+      if( isNumber( args[ 0 ] ) )
+        return { x: args[ 0 ], y: args[ 0 ] }
+
+      return args[ 0 ]
+    }
+  }
+}
+
+const Point = ApiFactory( [ pointModule, createStateModule ] )
+
+const p1 = Point({ x: 5, y: 7 })
+const p2 = Point( 4, 9 )
+const p3 = Point( 3 )
+
+assert.equal( p1.x(), 5 )
+assert.equal( p1.y(), 7 )
+assert.equal( p2.x(), 4 )
+assert.equal( p2.y(), 9 )
+assert.equal( p3.x(), 3 )
+assert.equal( p3.y(), 3 )
+```
+
 ### Options
 
 We can also pass some options to `ApiFactory`. Any options passed will override
@@ -389,7 +430,6 @@ const defaultOptions = {
   getStateKey: state => state,
   isState: state => true,
   exposeState: false,
-  stateParsers: [],
   onCreate: api => {}
 }
 ```
@@ -507,48 +547,6 @@ const point2 = Point( p2 )
 
 console.log( point1.x(), point1.y() ) // 5 7
 console.log( point2.x(), point2.y() ) // 5 7
-```
-
-#### Overloading the API factory
-
-You can do a custom parse on the arguments coming into the factory, returning
-a value that will satisfy your `isState` requirement.
-
-If the arguments aren't what you're looking to handle, don't return anything,
-or return `undefined` and it will fall back to the default behaviour, which is
-`( ...args ) => args[ 0 ]`
-
-You can chain several parsers together this way, the state will be handled by
-the first that doesn't return `undefined`
-
-Your parser handler will get the current Api so that you can call static
-methods if you wish to do so.
-
-```javascript
-const parseNumbers = ( Api, ...args ) => {
-  if( isNumber( args[ 0 ] ) && isNumber( args[ 1 ] ) )
-    return { x: args[ 0 ], y: args[ 1 ] }
-}
-
-const parseSingle = ( Api, ...args ) => {
-  if( isNumber( args[ 0 ] ) )
-    return { x: args[ 0 ], y: args[ 0 ] }
-}
-
-const options = { stateParsers: [ parseNumbers, parseSingle ] }
-
-const Point = ApiFactory( pointModule, options )
-
-const p1 = Point({ x: 5, y: 7 })
-const p2 = Point( 4, 9 )
-const p3 = Point( 3 )
-
-assert.equal( p1.x(), 5 )
-assert.equal( p1.y(), 7 )
-assert.equal( p2.x(), 4 )
-assert.equal( p2.y(), 9 )
-assert.equal( p3.x(), 3 )
-assert.equal( p3.y(), 3 )
 ```
 
 #### Callback when an api instance is created

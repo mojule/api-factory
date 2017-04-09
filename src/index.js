@@ -6,11 +6,8 @@ const defaultOptions = {
   getStateKey: state => state,
   isState: state => true,
   exposeState: false,
-  stateParsers: [],
   onCreate: api => {}
 }
-
-const defaultStateParser =  ( Api, ...args ) => args[ 0 ]
 
 const ApiFactory = ( modules = [], options = {} ) => {
   if( !is.array( modules ) )
@@ -24,21 +21,8 @@ const ApiFactory = ( modules = [], options = {} ) => {
   ensureOptions( options )
 
   const {
-    getStateKey, isState, exposeState, stateParsers, onCreate
+    getStateKey, isState, exposeState, onCreate
   } = options
-
-  stateParsers.push( defaultStateParser )
-
-  const parseState = ( Api, ...args ) => {
-    let state
-
-    stateParsers.forEach( parser => {
-      if( is.undefined( state ) )
-        state = parser( Api, ...args )
-    })
-
-    return state
-  }
 
   const apiCache = new Map()
   const stateCache = new Map()
@@ -46,7 +30,8 @@ const ApiFactory = ( modules = [], options = {} ) => {
   const getState = instance => stateCache.get( instance )
 
   const Api = ( ...args ) => {
-    const state = parseState( Api, ...args )
+    const state = is.function( Api.createState ) ?
+      Api.createState( ...args ) : args[ 0 ]
 
     if( !Api.isState( state ) )
       throw new Error( 'Api state argument fails isState test' )
@@ -96,7 +81,7 @@ const validModules = modules =>
   is.array( modules ) && modules.every( is.function )
 
 const ensureOptions = options => {
-  const { getStateKey, isState, exposeState, stateParsers, onCreate } = options
+  const { getStateKey, isState, exposeState, onCreate } = options
 
   if( !is.function( getStateKey ) )
     throw new Error( 'getStateKey option should be a function' )
@@ -109,9 +94,6 @@ const ensureOptions = options => {
 
   if( !is.boolean( exposeState ) )
     throw new Error( 'exposeState option should be a boolean' )
-
-  if( !is.array( stateParsers ) || !stateParsers.every( is.function ) )
-    throw new Error( 'stateParsers option should be an array of functions' )
 }
 
 const Statics = ( Api, modules ) =>
