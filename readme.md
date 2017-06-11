@@ -1,5 +1,7 @@
 # api-factory
 
+# Documentation outdated - update for 1.0.0!!!
+
 Compose an API over a state. Allows use cases like:
 
 - A common API over similar but different backing data, via adapters

@@ -1,116 +1,72 @@
 'use strict'
 
-const is = require( '@mojule/is' )
+const is = require( './is' )
+const defaultPlugins = require( './plugins' )
+const combine = require( './combinePlugins' )
+const normalize = require( './normalizePlugins' )
 
-const defaultOptions = {
-  getStateKey: state => state,
-  isState: state => true,
-  exposeState: false,
-  onCreate: api => {}
-}
-
-const ApiFactory = ( modules = [], options = {} ) => {
-  if( !is.array( modules ) )
-    modules = [ modules ]
-
-  if( !validModules( modules ) )
-    throw new Error( 'Expected modules to be an array of functions' )
-
-  options = Object.assign( {}, defaultOptions, options )
-
-  ensureOptions( options )
-
-  const {
-    getStateKey, isState, exposeState, onCreate
-  } = options
-
+const ApiFactory = ( ...plugins ) => {
   const apiCache = new Map()
   const stateCache = new Map()
 
-  const getState = instance => stateCache.get( instance )
+  const coreState = { core: [
+    coreApi => {
+      coreApi.getState = api => stateCache.get( api )
+      coreApi.getApi = state => apiCache.get( state )
+    }
+  ]}
+
+  plugins = plugins.map( normalize )
+  plugins = combine( defaultPlugins, coreState, ...plugins )
+
+  const { core = [], publics = [], privates = [], statics = [] } = plugins
 
   const Api = ( ...args ) => {
-    const state = is.function( Api.createState ) ?
-      Api.createState( ...args ) : args[ 0 ]
+    const { createState, getStateKey, isState, onCreate } = coreApi
 
-    if( !Api.isState( state ) )
-      throw new Error( 'Api state argument fails isState test' )
+    const state = createState( ...args )
 
-    const key = Api.getStateKey( state )
+    if( !isState( state ) )
+      throw Error( 'Api state argument fails isState test' )
+
+    const key = getStateKey( state )
 
     if( apiCache.has( key ) )
       return apiCache.get( key )
 
-    const api = ( ...args ) => Api( ...args )
+    const privateApi = privates.reduce( ( api, fn ) => {
+      fn( api, state, coreApi, staticApi )
 
-    const plugin = mod => {
-      const modApi = mod( api, state, getState )
+      return api
+    }, {} )
 
-      Object.keys( modApi ).forEach( key => {
-        if( key.startsWith( '$' ) ){
-          modApi[ key.slice( 1 ) ] = modApi[ key ]
-          delete modApi[ key ]
-        }
-      })
+    const publicApi = publics.reduce( ( api, fn ) => {
+      fn( api, state, coreApi, privateApi, staticApi )
 
-      Object.assign( api, modApi )
-    }
+      return api
+    }, {} )
 
-    if( exposeState )
-      Object.assign( api, { state } )
+    stateCache.set( publicApi, state )
+    apiCache.set( key, publicApi )
 
-    stateCache.set( api, state )
+    onCreate( publicApi )
 
-    modules.forEach( plugin )
-
-    apiCache.set( key, api )
-
-    Api.onCreate( api )
-
-    return api
+    return publicApi
   }
 
-  const statics = Statics( Api, modules )
+  const staticApi = statics.reduce( ( api, fn ) => {
+    fn( api )
+    return api
+  }, { create: Api } )
 
-  Object.assign( Api, statics, { isState, getStateKey, onCreate } )
+  const coreApi = core.reduce( ( api, fn ) => {
+    fn( api, staticApi )
+    return api
+  }, {} )
+
+  Object.assign( Api, staticApi )
 
   return Api
 }
-
-const validModules = modules =>
-  is.array( modules ) && modules.every( is.function )
-
-const ensureOptions = options => {
-  const { getStateKey, isState, exposeState, onCreate } = options
-
-  if( !is.function( getStateKey ) )
-    throw new Error( 'getStateKey option should be a function' )
-
-  if( !is.function( isState ) )
-    throw new Error( 'isState option should be a function' )
-
-  if( !is.function( onCreate ) )
-    throw new Error( 'onCreate option should be a function' )
-
-  if( !is.boolean( exposeState ) )
-    throw new Error( 'exposeState option should be a boolean' )
-}
-
-const Statics = ( Api, modules ) =>
-  modules.reduce( ( statics, mod ) => {
-    const fns = mod( statics )
-
-    const staticNames = Object.keys( fns ).filter( name =>
-      name.startsWith( '$' )
-    )
-
-    staticNames.forEach( name => {
-      const unprefixed = name.slice( 1 )
-
-      statics[ unprefixed ] = fns[ name ]
-    })
-
-    return statics
-  }, Api )
 
 module.exports = ApiFactory
