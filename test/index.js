@@ -2,12 +2,12 @@
 
 const assert = require( 'assert' )
 const is = require( '@mojule/is' )
-const ApiFactory = require( '../src' )
+const ApiFactory = require( '../' )
 const Point = require( './fixtures/point' )
 
 describe( 'API Factory', () => {
   describe( 'Factory', () => {
-    const is = require( '../src/is' )
+    const is = require( '../is' )
 
     it( 'Empty Factory', () => {
       const Api = ApiFactory()

@@ -1,6 +1,6 @@
 'use strict'
 
-const ApiFactory = require( '../../../src/' )
+const ApiFactory = require( '../../../' )
 const plugins = require( './plugins' )
 
 const Point = ApiFactory( plugins )
