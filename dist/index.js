@@ -1,130 +1,91 @@
 'use strict';
 
-var is = require('@mojule/is');
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
-var defaultOptions = {
-  getStateKey: function getStateKey(state) {
-    return state;
-  },
-  isState: function isState(state) {
-    return true;
-  },
-  exposeState: false,
-  onCreate: function onCreate(api) {}
-};
+var is = require('./is');
+var defaultPlugins = require('./plugins');
+var combine = require('./combinePlugins');
+var normalize = require('./normalizePlugins');
 
 var ApiFactory = function ApiFactory() {
-  var modules = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
-  var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-  if (!is.array(modules)) modules = [modules];
-
-  if (!validModules(modules)) throw new Error('Expected modules to be an array of functions');
-
-  options = Object.assign({}, defaultOptions, options);
-
-  ensureOptions(options);
-
-  var _options = options,
-      getStateKey = _options.getStateKey,
-      isState = _options.isState,
-      exposeState = _options.exposeState,
-      onCreate = _options.onCreate;
-
+  for (var _len = arguments.length, plugins = Array(_len), _key = 0; _key < _len; _key++) {
+    plugins[_key] = arguments[_key];
+  }
 
   var apiCache = new Map();
   var stateCache = new Map();
 
-  var getState = function getState(instance) {
-    return stateCache.get(instance);
-  };
+  var coreState = { core: [function (coreApi) {
+      coreApi.getState = function (api) {
+        return stateCache.get(api);
+      };
+      coreApi.getApi = function (state) {
+        return apiCache.get(state);
+      };
+    }] };
+
+  plugins = plugins.map(normalize);
+  plugins = combine.apply(undefined, [defaultPlugins, coreState].concat(_toConsumableArray(plugins)));
+
+  var _plugins = plugins,
+      _plugins$core = _plugins.core,
+      core = _plugins$core === undefined ? [] : _plugins$core,
+      _plugins$publics = _plugins.publics,
+      publics = _plugins$publics === undefined ? [] : _plugins$publics,
+      _plugins$privates = _plugins.privates,
+      privates = _plugins$privates === undefined ? [] : _plugins$privates,
+      _plugins$statics = _plugins.statics,
+      statics = _plugins$statics === undefined ? [] : _plugins$statics;
+
 
   var Api = function Api() {
-    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-      args[_key] = arguments[_key];
-    }
+    var createState = coreApi.createState,
+        getStateKey = coreApi.getStateKey,
+        isState = coreApi.isState,
+        onCreate = coreApi.onCreate;
 
-    var state = is.function(Api.createState) ? Api.createState.apply(Api, args) : args[0];
 
-    if (!Api.isState(state)) throw new Error('Api state argument fails isState test');
+    var state = createState.apply(undefined, arguments);
 
-    var key = Api.getStateKey(state);
+    if (!isState(state)) throw Error('Api state argument fails isState test');
+
+    var key = getStateKey(state);
 
     if (apiCache.has(key)) return apiCache.get(key);
 
-    var api = function api() {
-      return Api.apply(undefined, arguments);
-    };
+    var privateApi = privates.reduce(function (api, fn) {
+      fn(api, state, coreApi, staticApi);
 
-    var plugin = function plugin(mod) {
-      var modApi = mod(api, state, getState);
+      return api;
+    }, {});
 
-      Object.keys(modApi).forEach(function (key) {
-        if (key.startsWith('$')) {
-          modApi[key.slice(1)] = modApi[key];
-          delete modApi[key];
-        }
-      });
+    var publicApi = publics.reduce(function (api, fn) {
+      fn(api, state, coreApi, privateApi, staticApi);
 
-      Object.assign(api, modApi);
-    };
+      return api;
+    }, {});
 
-    if (exposeState) Object.assign(api, { state: state });
+    stateCache.set(publicApi, state);
+    apiCache.set(key, publicApi);
 
-    stateCache.set(api, state);
+    onCreate(publicApi);
 
-    modules.forEach(plugin);
-
-    apiCache.set(key, api);
-
-    Api.onCreate(api);
-
-    return api;
+    return publicApi;
   };
 
-  var statics = Statics(Api, modules);
+  var staticApi = statics.reduce(function (api, fn) {
+    fn(api);
+    return api;
+  }, { create: Api });
 
-  Object.assign(Api, statics, { isState: isState, getStateKey: getStateKey, onCreate: onCreate });
+  var coreApi = core.reduce(function (api, fn) {
+    fn(api, staticApi);
+    return api;
+  }, {});
+
+  Object.assign(Api, staticApi);
 
   return Api;
-};
-
-var validModules = function validModules(modules) {
-  return is.array(modules) && modules.every(is.function);
-};
-
-var ensureOptions = function ensureOptions(options) {
-  var getStateKey = options.getStateKey,
-      isState = options.isState,
-      exposeState = options.exposeState,
-      onCreate = options.onCreate;
-
-
-  if (!is.function(getStateKey)) throw new Error('getStateKey option should be a function');
-
-  if (!is.function(isState)) throw new Error('isState option should be a function');
-
-  if (!is.function(onCreate)) throw new Error('onCreate option should be a function');
-
-  if (!is.boolean(exposeState)) throw new Error('exposeState option should be a boolean');
-};
-
-var Statics = function Statics(Api, modules) {
-  return modules.reduce(function (statics, mod) {
-    var fns = mod(statics);
-
-    var staticNames = Object.keys(fns).filter(function (name) {
-      return name.startsWith('$');
-    });
-
-    staticNames.forEach(function (name) {
-      var unprefixed = name.slice(1);
-
-      statics[unprefixed] = fns[name];
-    });
-
-    return statics;
-  }, Api);
 };
 
 module.exports = ApiFactory;
