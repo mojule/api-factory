@@ -2,6 +2,123 @@
 
 # Documentation outdated - update for 1.0.0!!!
 
+## Why?
+
+I'm sold on paring js down to its most powerful features and keeping things very
+simple - eliminate weird `this` behaviour, rely on functional concepts, simple
+objects (preferably JSON-serializable), object composition instead of
+inheritance etc. - but still be able to build complex things out of simple
+parts. Class-free OO. Started with Crockford's JS Good Parts but also see
+his talks on the better parts, rationale behind ES6 and etc; Crockford, Eric
+Elliot, Mattias Petter Johansson et al
+
+## How?
+
+## Things need to be in doc:
+
+Using functional composition to create object oriented APIs over a state.
+Functional and object oriented but not class based
+Favouring composition over inheritance - GoF
+Avoiding weird classes/prototypes, `this` etc - fragile, hacky
+Basis is composing functions and objects, two aspects of js that are great
+Plugins are just closures
+Modular, resuable
+Inversion of control / dependency injection
+Controlling mutation / access to state - create a small surface area for mutation
+Optional validation
+Override/wrapper/decorator plugins
+Adapters, bridges etc.
+Action pattern, undo/redo stack etc
+Hide state from consumers
+Why core/publics/privates/statics
+Decoupling/separation of concerns etc.
+Getting state from an api instance, getting an api instance from state - getApi/getState
+Caching/memoizing map etc. - === comparison and etc
+State key
+Creating state
+Plugin order / capturing previous functions / overriding and calling previous etc
+onCreate - observing creation of api instances
+isState
+Object pooling?
+Examples: tree, grid
+
+Never use:
+  - falsiness
+  - null
+  - this
+  - prototype
+  - class
+  - etc
+
+## Api - a factory for creating instances
+
+## api - an instance
+
+## static plugins
+
+Particularly useful for functions that create new instances, eg a function that
+takes a serialized JSON version of the state and returns a new api instance
+
+A static plugin closure looks like:
+
+```javascript
+staticApi => {
+  staticApi.deserialize = jsonObj => { /*...*/ }
+}
+```
+
+### default
+
+```javascript
+staticApi => {
+  // same as calling Api( ...args )
+  staticApi.create = ( ...args ) => { /*...*/ }
+}
+```
+
+## core plugins
+
+Things that are core to generating APIs, not specific to the type of API or the
+type of state - if a function would be useful with any API, it belongs in core
+
+Kinda like private statics if you're used to class oriented programming
+
+A plugin closure looks like:
+
+```javascript
+( coreApi, staticApi ) => {
+  // attach your core plugins
+  coreApi.someCoreFunction = ( ...args ) => { //... }
+}
+```
+
+### defaults
+
+```javascript
+const core = api => {
+  api.createState = ( ...args ) => args[ 0 ]
+  api.getStateKey = state => state
+  api.isState = state => true
+  api.onCreate = api => {}
+}
+```
+
+## privates
+
+```javascript
+( privateApi, state, coreApi, staticApi ) => {
+  privateApi.someFn = ( ...args ) => { /*...*/ }
+}
+```
+
+## publics
+
+```javascript
+( publicApi, state, coreApi, privateApi, staticApi ) => {
+  publicApi.someFn = ( ...args ) => { /*...*/ }
+}
+```
+
 Compose an API over a state. Allows use cases like:
 
 - A common API over similar but different backing data, via adapters
@@ -18,570 +135,3 @@ compact.
 ## Install
 
 `npm install @mojule/api-factory`
-
-## Examples
-
-Examples will use a fictional API over a Cartesian point - they may seem so
-trivial at first that it seems like something like `api-factory` is unnecessary
-for this use case, but as we build the API up through a series of examples, the
-benefits will hopefully become clear.
-
-### Basic usage
-
-[examples/point/basic.js](examples/point/basic.js)
-```javascript
-const ApiFactory = require( '@mojule/api-factory' )
-
-const pointModule = ( api, state ) => {
-  return {
-    x: () => state.x,
-    y: () => state.y
-  }
-}
-
-const Point = ApiFactory( pointModule )
-
-const point = Point( { x: 5, y: 7 } )
-
-console.log( point.x(), point.y() ) // 5  7
-```
-
-### Adding additional modules
-
-A module is a function that takes the current API and a state, and returns an
-object containing further API functions which are added to the current API.
-
-Normally you would compose the API out of multiple modules, in which case you
-pass `ApiFactory` an array:
-
-[examples/point/basic-state.js](examples/point/basic-state.js)
-```javascript
-// pointModule is same as above
-
-const coreModule = ( api, state ) => {
-  return {
-    add: ( x, y ) => {
-      const newX = state.x + x
-      const newY = state.y + y
-
-      return { x: newX, y: newY }
-    }
-  }
-}
-
-const Point = ApiFactory( [ pointModule, coreModule ] )
-
-const p1 = { x: 5, y: 7 }
-
-const point = Point( p1 )
-
-const p2 = point.add( -1, 2 )
-
-// original point is unaffected:
-console.log( p1 ) // { x: 5, y: 7 }
-console.log( p2 ) // { x: 4, y: 9 }
-```
-
-### Calling the API from modules
-
-You'll note that we've only used the `state` argument in our modules so far -
-instead of using the state argument, let's redo the above example using the
-`api` argument:
-
-[examples/point/basic-api.js](examples/point/basic-api.js)
-```javascript
-const coreModule = ( api, state ) => {
-  return {
-    add: ( x, y ) => {
-      const newX = api.x() + x // references api instead of state
-      const newY = api.y() + y
-
-      return { x: newX, y: newY }
-    }
-  }
-}
-
-const Point = ApiFactory( [ pointModule, coreModule ] )
-
-const p1 = { x: 5, y: 7 }
-
-const point = Point( p1 )
-
-const p2 = point.add( -1, 2 )
-
-// original point is unaffected:
-console.log( p1 ) // { x: 5, y: 7 }
-console.log( p2 ) // { x: 4, y: 9 }
-```
-
-### Implementing adapters
-
-Why would we want to use the api to get `x` and `y` rather than getting them
-directly from the state, given that we have access to the state?
-
-Imagine that our code consumes points in two different formats, one where
-they're stored as arrays, and one where they are stored as objects:
-
-```javascript
-const arrayPointData = [ 5, 7 ]
-const objectPointData = { x: 5, y: 7 }
-```
-
-By decoupling our core functions from the state, we can implement an adapter
-for each point type, and then reuse our core functions (just `add` at present)
-for any point type:
-
-[examples/point/basic-adapters.js](examples/point/basic-adapters.js)
-```javascript
-const pointModule = ( api, state ) => {
-  return {
-    x: () => state.x,
-    y: () => state.y
-  }
-}
-
-const arrayPointModule = ( api, state ) => {
-  return {
-    x: () => state[ 0 ],
-    y: () => state[ 1 ]
-  }
-}
-
-const coreModule = ( api, state ) => {
-  return {
-    add: ( x, y ) => {
-      const newX = api.x() + x
-      const newY = api.y() + y
-
-      return { x: newX, y: newY }
-    }
-  }
-}
-
-const Point = ApiFactory( [ pointModule, coreModule ] )
-const ArrayPoint = ApiFactory( [ arrayPointModule, coreModule ] )
-
-const p1 = { x: 5, y: 7 }
-const a1 = [ 5, 7 ]
-
-const point = Point( p1 )
-const arrayPoint = ArrayPoint( a1 )
-
-const p2 = point.add( -1, 2 )
-const a2 = arrayPoint.add( -1, 2 )
-
-console.log( p1 ) // { x: 5, y: 7 }
-console.log( p2 ) // { x: 4, y: 9 }
-
-console.log( a1 ) // [ 5, 7 ]
-console.log( a2 ) // { x: 4, y: 9 }
-```
-
-### Creating instances of the API from your modules
-
-You'll notice that regardless of the input type, we always return an object
-point. This might be what we want (we want to normalize our input and work with
-a single format for output) in which case we don't have to do anything extra,
-or we might need to pass our results back to some other code, and it needs to be
-in the original format, in which case we can add an extra function to each of
-the adapters:
-
-[examples/point/adapters-create.js](examples/point/adapters-create.js)
-```javascript
-const pointModule = ( api, state ) => {
-  return {
-    createData: ( x, y ) => ({ x, y }),
-    x: () => state.x,
-    y: () => state.y
-  }
-}
-
-const arrayPointModule = ( api, state ) => {
-  return {
-    createData: ( x, y ) => [ x, y ],
-    x: () => state[ 0 ],
-    y: () => state[ 1 ]
-  }
-}
-
-const coreModule = ( api, state ) => {
-  return {
-    add: ( x, y ) => {
-      const newX = api.x() + x
-      const newY = api.y() + y
-
-      return api.createData( newX, newY )
-    }
-  }
-}
-```
-
-Alternatively, we may want to return a point API, so that we can call further
-methods on it:
-
-```javascript
-const point1 = Point({ x: 5, y: 7 })
-const point2 = point1.add( -1, 2 )
-const point3 = point2.add( 3, -6 )
-```
-
-The `api` argument passed to your modules is not just a bag of the functions
-which have been added to the API so far, it can also construct a new instance of
-the API if called as a function. So to return a point API instead of raw data,
-we can do this:
-
-```javascript
-const coreModule = ( api, state ) => {
-  return {
-    add: ( x, y ) => {
-      const newX = api.x() + x
-      const newY = api.y() + y
-
-      const data = api.createData( newX, newY )
-
-      return api( data )
-    }
-  }
-}
-```
-
-While we're at it, let's add a function to the core that allows us to get the
-raw data out of an API node:
-
-```javascript
-const coreModule = ( api, state ) => {
-  return {
-    add: ( x, y ) => {
-      const newX = api.x() + x
-      const newY = api.y() + y
-
-      const data = api.createData( newX, newY )
-
-      return api( data )
-    },
-    getData: () => api.createData( api.x(), api.y() )
-  }
-}
-```
-
-So now we can go from raw data in any format we have an adapter for, to a common
-point API that works the same regardless of the underlying format, back to the
-original format:
-
-[examples/point/api-function.js](examples/point/api-function.js)
-```javascript
-const p1 = { x: 5, y: 7 }
-const point1 = Point( p1 )
-const point2 = point1.add( -1, 2 )
-const point3 = point2.add( 3, -6 )
-const p2 = point2.getData()
-const p3 = point3.getData()
-
-const a1 = [ 5, 7 ]
-const arrayPoint1 = ArrayPoint( a1 )
-const arrayPoint2 = arrayPoint1.add( -1, 2 )
-const arrayPoint3 = arrayPoint2.add( 3, -6 )
-const a2 = arrayPoint2.getData()
-const a3 = arrayPoint3.getData()
-
-console.log( p1 ) // { x: 5, y: 7 }
-console.log( p2 ) // { x: 4, y: 9 }
-console.log( p3 ) // { x: 7, y: 3 }
-
-console.log( a1 ) // [ 5, 7 ]
-console.log( a2 ) // [ 4, 9 ]
-console.log( a3 ) // [ 7, 3 ]
-```
-
-### Decorating existing API functions
-
-For the next example, we'll add a decorator function that overrides `add` to
-allow it to take either two number arguments, or a single point API argument -
-because the object point API and the array point API have the same syntax, we
-can pass them to each other's add function.
-
-To do this we'll create a new module rather than extend the existing `add`
-function, to demonstrate how to decorate existing modules:
-
-[examples/point/decorate.js](examples/point/decorate.js)
-```javascript
-const isFunction = subject => typeof subject === 'function'
-const isPoint = subject => subject && isFunction( subject.x ) && isFunction( subject.y )
-
-const addPointOrNumbersModules = ( api, state ) => {
-  // capture the existing add function
-  const { add } = api
-
-  return {
-    add: ( a, b ) => {
-      let x, y
-
-      if( isPoint( a ) ){
-        x = a.x()
-        y = a.y()
-      } else {
-        x = a
-        y = b
-      }
-
-      // call the original add function
-      return add( x, y )
-    }
-  }
-}
-```
-
-Following on from this, you could extend this decorator or add a new one that
-also accepts raw data as an argument.
-
-### Advanced
-
-#### Get the state of another instance
-
-Sometimes you may need to access the state of another instance - in that case,
-you can have your module accept a third argument, `getState`:
-
-```javascript
-  const logPointStateModule = ( api, state, getState ) => {
-    return {
-      logPoint: point => console.log( getState( point ) )
-    }
-  }
-```
-
-#### Static functions
-
-Static functions are attached to the returned API factory as well as to
-instances of the API, with the `$` prefix removed. When called by internal
-functions you also call them without the `$` prefix.
-
-Statics should not access state, and should only call other static methods on
-the `api` argument, otherwise an exception may be thrown. It is fine for
-non-static methods to call static methods.
-
-```javascript
-const staticModule = ( api, state ) => {
-  return {
-    $isIntegerPoint: p =>
-      p && typeof p === 'object' && Number.isInteger( p.x ) && Number.isInteger( p.y ),
-    isValid: () => api.isIntegerPoint( state )
-  }
-}
-
-const Point = ApiFactory(
-  [ pointModule, staticModule ],
-  { isState: isObjectPoint }
-)
-
-const p1 = { x: 5, y: 7 }
-
-console.log( Point.isIntegerPoint( p1 ) ) // true
-
-const point1 = Point( p1 )
-
-console.log( point1.isValid() ) // true
-```
-
-#### Overloading arguments to the API
-
-You can do a custom handling on the arguments coming into the factory, returning
-a value that will satisfy your `isState` requirement.
-
-Immediately upon being called with potential state arguments, the Api generated
-by ApiFactory will check if there is a static method `createState` - if there
-is, it will pass its args to that in order to get the state. If there isn't, it
-will use the first arg passed to Api
-
-```javascript
-
-const createStateModule = api => {
-  return {
-    $createState: ( ...args ) => {
-      if( isNumber( args[ 0 ] ) && isNumber( args[ 1 ] ) )
-        return { x: args[ 0 ], y: args[ 1 ] }
-
-      if( isNumber( args[ 0 ] ) )
-        return { x: args[ 0 ], y: args[ 0 ] }
-
-      return args[ 0 ]
-    }
-  }
-}
-
-const Point = ApiFactory( [ pointModule, createStateModule ] )
-
-const p1 = Point({ x: 5, y: 7 })
-const p2 = Point( 4, 9 )
-const p3 = Point( 3 )
-
-assert.equal( p1.x(), 5 )
-assert.equal( p1.y(), 7 )
-assert.equal( p2.x(), 4 )
-assert.equal( p2.y(), 9 )
-assert.equal( p3.x(), 3 )
-assert.equal( p3.y(), 3 )
-```
-
-### Options
-
-We can also pass some options to `ApiFactory`. Any options passed will override
-the defaults:
-
-```javascript
-const defaultOptions = {
-  getStateKey: state => state,
-  isState: state => true,
-  exposeState: false,
-  onCreate: api => {}
-}
-```
-
-#### Hiding state from comsuming code
-
-By default, the state is not exposed to consuming code. You might want to expose
-it for debugging or testing. By passing the `exposeState` option, you can
-attach the state to the returned API instance:
-
-[examples/point/expose-state.js](examples/point/expose-state.js)
-```javascript
-const point = Point( { x: 5, y: 7 }, { exposeState: true } )
-
-console.log( point.state ) // { x: 5, y: 7 }
-```
-
-Default behaviour:
-
-[examples/point/hide-state.js](examples/point/hide-state.js)
-```javascript
-const Point = ApiFactory( pointModule, { exposeState: false } )
-const point = Point( { x: 5, y: 7 } )
-
-console.log( point.state ) // undefined
-```
-
-#### Caching the API and allowing === comparison
-
-The `ApiFactory` caches the generated API instances so that you don't have
-the overhead of wrapping state every time you construct an instance from the
-same underlying state.
-
-By default, it uses the state as the cache key:
-
-[examples/point/default-state-key.js](examples/point/default-state-key.js)
-```javascript
-const p1 = { x: 5, y: 7 }
-const p2 = { x: 5, y: 7 } // same x and y value, but different object instance
-
-const point1 = Point( p1 )
-const point2 = Point( p1 )
-const point3 = Point( p2 )
-
-console.log( point1 === point2 ) // same underlying state, returns true
-console.log( point1 === point3 ) // different state, returns false
-```
-
-You can add a custom function to the options to make custom cache keys - for
-example, points with the same x and y values return the same API instance:
-
-[examples/point/custom-state-key.js](examples/point/custom-state-key.js)
-```javascript
-const getStateKey = state => state.x + ' ' + state.y
-
-const Point = ApiFactory( pointModule, { getStateKey } )
-
-const p1 = { x: 5, y: 7 }
-const p2 = { x: 5, y: 7 }
-const p3 = { y: 7, x: 5 }
-const p4 = { x: 5, y: 7, z: -2 }
-const p5 = { x: 3, y: 12 }
-
-const point1 = Point( p1 )
-const point2 = Point( p2 )
-const point3 = Point( p3 )
-const point4 = Point( p4 )
-const point5 = Point( p5 )
-
-console.log( point1 === point2 ) // same state key, true
-console.log( point2 === point3 ) // true
-console.log( point3 === point4 ) // true
-console.log( point4 === point5 ) // different, false
-```
-
-#### Determining if an API can handle a given state
-
-You can also implement a custom predicate that indicates that your API can
-take a certain state - the default implementation always returns true.
-
-The API will throw an error if this function returns false, and will also attach
-the predicate to itself.
-
-One example use case for this would be creating a wrapper function that
-determines what underlying API to use:
-
-[examples/point/is-state.js](examples/point/is-state.js)
-```javascript
-const isNumber = subject => typeof subject === 'number' && !Number.isNaN( subject )
-
-const isObjectPoint = state =>
-  state && typeof state === 'object' && isNumber( state.x ) && isNumber( state.y )
-
-const isArrayPoint = state =>
-  Array.isArray( state ) && isNumber( state[ 0 ] ) && isNumber( state[ 1 ] )
-
-const ObjectPoint = ApiFactory( pointModule, { isState: isObjectPoint } )
-const ArrayPoint = ApiFactory( arrayPointModule, { isState: isArrayPoint } )
-
-const PointApis = [ ObjectPoint, ArrayPoint ]
-
-const Point = state => {
-  const Api = PointApis.find( P => P.isState( state ) )
-
-  if( !Api ) throw new Error( 'No API found that handles that state' )
-
-  return Api( state )
-}
-
-const p1 = { x: 5, y: 7 }
-const p2 = [ 5, 7 ]
-
-const point1 = Point( p1 )
-const point2 = Point( p2 )
-
-console.log( point1.x(), point1.y() ) // 5 7
-console.log( point2.x(), point2.y() ) // 5 7
-```
-
-#### Callback when an api instance is created
-
-You can observe API instances being created with `onCreate`:
-
-```javascript
-const onCreate = p => console.log( 'New point created', p.x(), p.y() )
-
-const Point = ApiFactory( pointModule, { onCreate } )
-
-// New point created 5 7
-const p1 = Point({ x: 5, y: 7 })
-```
-
-#### Overriding options on an existing instance
-
-The following options are attached to the API instance and can be overridden
-after creating the instance:
-
-`isState, getStateKey, onCreate`
-
-All calls made after overriding the function will call the new function.
-
-```javascript
-const Point = ApiFactory( pointModule, { isState: isPoint } )
-
-Point.isState = state => {
-  return isPoint( state ) && Number.isInteger( state.x ) && Number.isInteger( state.y )
-}
-
-const p1 = Point({ x: 5, y: 7 })
-
-// throws
-const p2 = Point({ x: 5.5, y: 7 })
-```
