@@ -16,31 +16,31 @@ Elliot, Mattias Petter Johansson et al
 
 ## Things need to be in doc:
 
-Using functional composition to create object oriented APIs over a state.
-Functional and object oriented but not class based
-Favouring composition over inheritance - GoF
-Avoiding weird classes/prototypes, `this` etc - fragile, hacky
-Basis is composing functions and objects, two aspects of js that are great
-Plugins are just closures
-Modular, resuable
-Inversion of control / dependency injection
-Controlling mutation / access to state - create a small surface area for mutation
-Optional validation
-Override/wrapper/decorator plugins
-Adapters, bridges etc.
-Action pattern, undo/redo stack etc
-Hide state from consumers
-Why core/publics/privates/statics
-Decoupling/separation of concerns etc.
-Getting state from an api instance, getting an api instance from state - getApi/getState
-Caching/memoizing map etc. - === comparison and etc
-State key
-Creating state
-Plugin order / capturing previous functions / overriding and calling previous etc
-onCreate - observing creation of api instances
-isState
-Object pooling?
-Examples: tree, grid
+- Using functional composition to create object oriented APIs over a state.
+- Functional and object oriented but not class based
+- Favouring composition over inheritance - GoF
+- Avoiding weird classes/prototypes, `this` etc - fragile, hacky
+- Basis is composing functions and objects, two aspects of js that are great
+- Plugins are just closures
+- Modular, resuable
+- Inversion of control / dependency injection
+- Controlling mutation / access to state - create a small surface area for mutation
+- Optional validation
+- Override/wrapper/decorator plugins
+- Adapters, bridges etc.
+- Action pattern, undo/redo stack etc
+- Hide state from consumers
+- Why core/publics/privates/statics
+- Decoupling/separation of concerns etc.
+- Getting state from an api instance, getting an api instance from state - getApi/getState
+- Caching/memoizing map etc. - === comparison and etc
+- State key
+- Creating state
+- Plugin order / capturing previous functions / overriding and calling previous etc
+- onCreate - observing creation of api instances
+- isState
+- Object pooling?
+- Examples: tree, grid
 
 Never use:
   - falsiness
