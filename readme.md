@@ -174,6 +174,16 @@ The plugins that end up being exposed to the end consumer of your API code
 }
 ```
 
-## Install
+## from simple patterns to API factory
 
-`npm install @mojule/api-factory`
+Maybe tree is a better example? Points are easier to reason about and explain,
+but they're so trivial that it's arguable whether they make a good candidate for
+using the API Factory...
+
+```javascript
+const Point = ( x, y ) => ({
+  x: () => x,
+  y: () => y,
+  add: point => Point( x + point.x(), y + point.y() )
+})
+```
