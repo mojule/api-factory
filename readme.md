@@ -62,9 +62,10 @@ Elliot, Mattias Petter Johansson et al
 - Examples: tree, grid
 
 Never use:
-  - falsiness
-  - null
-  - this
+  - coercive equals `a == b`
+  - falsiness `const i = 1; if( i ){ /* ... */ }`
+  - `null`
+  - `this`
   - prototype
   - class
   - etc
@@ -174,16 +175,131 @@ The plugins that end up being exposed to the end consumer of your API code
 }
 ```
 
-## from simple patterns to API factory
+## redux-like pattern
 
-Maybe tree is a better example? Points are easier to reason about and explain,
-but they're so trivial that it's arguable whether they make a good candidate for
-using the API Factory...
+You can use api factory in a redux like style:
 
 ```javascript
-const Point = ( x, y ) => ({
-  x: () => x,
-  y: () => y,
-  add: point => Point( x + point.x(), y + point.y() )
+const is = require( '@mojule/is' )
+
+const isTodo = target =>
+  is.object( target ) && is.string( target.text ) &&
+  is.boolean( target.completed )
+
+const isTodoList = target =>
+  is.array( target ) && target.every( isTodo )
+
+const isTodoState = target =>
+  is.object( target ) && isTodoList( target.todos ) &&
+  is.string( target.visibilityFilter )
+
+const visibilityFilter = ( state = 'SHOW_ALL', action = {} ) => {
+  if( action.type === 'visibility' )
+    return action.filter
+
+  return state
+}
+
+const todos = ( state = [], action = {} ) => {
+  if( action.type === 'add' )
+    return state.concat([{ text: action.text, completed: false }])
+
+  if( action.type === 'toggle' )
+    return state.map( ( todo, index ) =>
+      action.index === index ?
+        { text: todo.text, completed: !todo.completed } : todo
+    )
+
+  return state
+}
+
+const todoApp = ( state = {}, action = {} ) => ({
+  todos: todos( state.todos, action ),
+  visibilityFilter: visibilityFilter( state.visibilityFilter, action )
 })
+
+const core = [
+  api => {
+    api.createState = ( ...args ) => {
+      if( isTodoState( args[ 0 ] ) )
+        return args[ 0 ]
+
+      return {
+        todos: args.map( text => ({
+          text, completed: false
+        })),
+        visibilityFilter: 'SHOW_ALL'
+      }
+    }
+
+    api.isState = isTodoState
+  }
+]
+
+const privates = [
+  ( api, state, coreApi, staticApi ) => {
+    api.createAction = ( type, argsMapper ) =>
+      ( ...args ) => staticApi.create(
+        todoApp(
+          state,
+          Object.assign(
+            { type },
+            argsMapper( ...args )
+          )
+        )
+      )
+  }
+]
+
+const publics = [
+  ( api, state, coreApi, privateApi, staticApi ) => {
+    const { createAction } = privateApi
+
+    api.add = createAction( 'add', text => ({ text }) )
+    api.toggle = createAction( 'toggle', index => ({ index }) )
+    api.visibility = createAction( 'visibility', filter => ({ filter }) )
+
+    api.log = () => {
+      let todos = state.todos
+
+      if( state.visibilityFilter === 'SHOW_COMPLETED' ){
+        console.log( 'Completed tasks' )
+        todos = todos.filter( t => t.completed )
+      } else if( state.visibilityFilter === 'SHOW_UNCOMPLETED' ){
+        console.log( 'Incomplete tasks' )
+        todos = todos.filter( t => !t.completed )
+      } else {
+        console.log( 'All tasks' )
+      }
+      console.log( '---' )
+
+      todos.forEach( t =>
+        console.log( t.text, t.completed ? '(completed)' : '(incomplete)' )
+      )
+      console.log()
+    }
+  }
+]
+
+const Todos = ApiFactory( { core, privates, publics } )
+
+const initial = Todos( 'Eat food', 'Exercise' )
+
+initial.log()
+
+const added = initial.add( 'Foo the bar' )
+
+added.log()
+
+const toggled = added.toggle( 0 )
+
+toggled.log()
+
+const completed = toggled.visibility( 'SHOW_COMPLETED' )
+
+completed.log()
+
+const uncompleted = completed.visibility( 'SHOW_UNCOMPLETED' )
+
+uncompleted.log()
 ```
