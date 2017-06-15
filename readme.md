@@ -70,9 +70,25 @@ Never use:
 
 ## Api - a factory for creating instances
 
-Call ApiFactory with your plugins, get back an API factory for your specific API
-that takes arguments that define the underlying state and get back an API
+Call ApiFactory with your plugins, get back an factory for your specific API
+type that takes arguments that define the underlying state and get back an API
 instance
+
+eg:
+
+```javascript
+const ApiFactory = require( '@mojule/api-factory' )
+const plugins = require( './path/to/your/plugins' )
+
+// create a Point factory by passing ApiFactory plugins for managing point state
+const Point = ApiFactory( plugins )
+
+// create Point API instances
+const p1 = Point( 3, 4 )
+const p2 = Point( 4, 5 )
+// call a plugin
+const p3 = p1.add( p2 )
+```
 
 ## api - an instance
 
