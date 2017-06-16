@@ -7,7 +7,7 @@ const Point = require( './fixtures/point' )
 
 describe( 'API Factory', () => {
   describe( 'Factory', () => {
-    const is = require( '../is' )
+    const is = require( '../src/is' )
 
     it( 'Empty Factory', () => {
       const Api = ApiFactory()
@@ -27,31 +27,25 @@ describe( 'API Factory', () => {
 
     describe( 'Different plugin inputs', () => {
       const core = [
-        api => {
-          api.isState = state => is.number( state )
+        ({ core }) => {
+          core.isState = state => is.number( state )
         }
       ]
 
-      const valuePlugin = ( api, state ) => {
+      const valuePlugin = ({ api, state }) => {
         api.value = () => state
       }
 
       const publics = [ valuePlugin ]
 
-      it( 'Plugins', () => {
+      it( 'Single set', () => {
         const Api = ApiFactory( { core, publics } )
         const api = Api( 42 )
         assert.strictEqual( api.value(), 42 )
       })
 
-      it( 'Plugin', () => {
-        const Api = ApiFactory( { core }, publics )
-        const api = Api( 42 )
-        assert.strictEqual( api.value(), 42 )
-      })
-
-      it( 'Function', () => {
-        const Api = ApiFactory( { core }, valuePlugin )
+      it( 'Multiple sets', () => {
+        const Api = ApiFactory( { core }, { publics } )
         const api = Api( 42 )
         assert.strictEqual( api.value(), 42 )
       })
