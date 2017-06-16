@@ -1,6 +1,6 @@
 'use strict'
 
-const publics = ({ api, state, core, Api }) => {
+const api = ({ api, state, core, Api }) => {
   Object.defineProperty( api, 'x', {
     get: () => state[ 0 ],
     set: x => state[ 0 ] = x
@@ -27,4 +27,4 @@ const publics = ({ api, state, core, Api }) => {
   }
 }
 
-module.exports = [ publics ]
+module.exports = api

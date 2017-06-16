@@ -28,7 +28,7 @@ const ApiFactory = ( ...pluginSets ) => {
       return privates
     }, {} )
 
-    const api = plugins.publics.reduce( ( api, fn ) => {
+    const api = plugins.api.reduce( ( api, fn ) => {
       fn({ api, state, core, privates, statics, Api })
 
       return api

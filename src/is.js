@@ -7,11 +7,11 @@ const plugin = plugin => Is.array( plugin ) && plugin.every( Is.function )
 const plugins = plugins => {
   if( !Is.object( plugins ) ) return false
 
-  const { core = [], publics = [], privates = [], statics = [] } = plugins
+  const { core = [], statics = [], api = [], privates = [] } = plugins
 
   return (
-    plugin( core ) && plugin( publics ) && plugin( privates ) &&
-    plugin( statics )
+    plugin( core ) && plugin( statics ) && plugin( api ) &&
+    plugin( privates )
   )
 }
 

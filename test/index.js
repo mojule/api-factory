@@ -20,38 +20,42 @@ describe( 'API Factory', () => {
     it( 'Is', () => {
       assert( !is.plugins( [] ) )
       assert( !is.plugins( { core: 42 } ) )
-      assert( !is.plugins( { publics: 42 } ) )
+      assert( !is.plugins( { api: 42 } ) )
       assert( !is.plugins( { privates: 42 } ) )
       assert( !is.plugins( { statics: 42 } ) )
     })
 
     describe( 'Different plugin inputs', () => {
-      const core = [
-        ({ core }) => {
-          core.isState = state => is.number( state )
-        }
-      ]
+      const core = ({ core }) => {
+        core.isState = state => is.number( state )
+      }
 
-      const valuePlugin = ({ api, state }) => {
+      const api = ({ api, state }) => {
         api.value = () => state
       }
 
-      const publics = [ valuePlugin ]
-
       it( 'Single set', () => {
-        const Api = ApiFactory( { core, publics } )
-        const api = Api( 42 )
-        assert.strictEqual( api.value(), 42 )
+        const Api = ApiFactory( { core, api } )
+        const inst = Api( 42 )
+        assert.strictEqual( inst.value(), 42 )
       })
 
       it( 'Multiple sets', () => {
-        const Api = ApiFactory( { core }, { publics } )
-        const api = Api( 42 )
-        assert.strictEqual( api.value(), 42 )
+        const Api = ApiFactory( { core }, { api } )
+        const inst = Api( 42 )
+        assert.strictEqual( inst.value(), 42 )
+      })
+
+      it( 'Public as just function', () => {
+        const Api = ApiFactory( { core }, api )
+        const inst = Api( 42 )
+        assert.strictEqual( inst.value(), 42 )
       })
 
       it( 'Bad', () => {
-        assert.throws( () => ApiFactory( 42 ) )
+        assert.throws( () => {
+          ApiFactory( 42 )
+        })
       })
     })
   })

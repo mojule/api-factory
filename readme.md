@@ -49,7 +49,7 @@ Elliot, Mattias Petter Johansson et al
 - Adapters, bridges etc.
 - Action pattern, undo/redo stack etc
 - Hide state from consumers
-- Why core/publics/privates/statics
+- Why core/api/privates/statics
 - Decoupling/separation of concerns etc.
 - Getting state from an api instance, getting an api instance from state - getApi/getState
 - Caching/memoizing map etc. - === comparison and etc
@@ -108,17 +108,8 @@ takes a serialized JSON version of the state and returns a new api instance
 A static plugin closure looks like:
 
 ```javascript
-staticApi => {
-  staticApi.deserialize = jsonObj => { /*...*/ }
-}
-```
-
-#### default statics provided by API factory
-
-```javascript
-staticApi => {
-  // same as calling Api( ...args )
-  staticApi.create = ( ...args ) => { /*...*/ }
+({ statics, Api }) => {
+  statics.deserialize = jsonObj => { /*...*/ }
 }
 ```
 
@@ -133,9 +124,9 @@ of the resultant API or underlying state, it belongs in `core`
 A plugin closure looks like:
 
 ```javascript
-( coreApi, staticApi ) => {
+({ core, Api }) => {
   // attach your core plugins
-  coreApi.someCoreFunction = ( ...args ) => { //... }
+  core.someCoreFunction = ( ...args ) => { //... }
 }
 ```
 
@@ -144,11 +135,11 @@ A plugin closure looks like:
 Usually you would override some or all of these for your use case
 
 ```javascript
-const core = api => {
-  api.createState = ( ...args ) => args[ 0 ]
-  api.getStateKey = state => state
-  api.isState = state => true
-  api.onCreate = api => {}
+({ core }) => {
+  core.createState = ( ...args ) => args[ 0 ]
+  core.getStateKey = state => state
+  core.isState = state => true
+  core.onCreate = api => {}
 }
 ```
 
@@ -158,20 +149,20 @@ Plugins that can be called internally but aren't exposed to the end consumer of
 the API
 
 ```javascript
-( privateApi, state, coreApi, staticApi ) => {
-  privateApi.someFn = ( ...args ) => { /*...*/ }
+({ privates, state, core, statics, Api }) => {
+  privates.someFn = ( ...args ) => { /*...*/ }
 }
 ```
 
 There are no default plugins, as they are dependant on the type of state etc
 
-### publics
+### api
 
 The plugins that end up being exposed to the end consumer of your API code
 
 ```javascript
-( publicApi, state, coreApi, privateApi, staticApi ) => {
-  publicApi.someFn = ( ...args ) => { /*...*/ }
+({ api, state, core, privates, statics, Api }) => {
+  api.someFn = ( ...args ) => { /*...*/ }
 }
 ```
 
@@ -218,9 +209,9 @@ const todoApp = ( state = {}, action = {} ) => ({
   visibilityFilter: visibilityFilter( state.visibilityFilter, action )
 })
 
-const core = [
-  api => {
-    api.createState = ( ...args ) => {
+const corePlugins =
+  ({ core }) => {
+    core.createState = ( ...args ) => {
       if( isTodoState( args[ 0 ] ) )
         return args[ 0 ]
 
@@ -232,14 +223,13 @@ const core = [
       }
     }
 
-    api.isState = isTodoState
+    core.isState = isTodoState
   }
-]
 
-const privates = [
-  ( api, state, coreApi, staticApi ) => {
-    api.createAction = ( type, argsMapper ) =>
-      ( ...args ) => staticApi.create(
+const privatePlugins =
+  ({ privates, state, Api }) => {
+    privates.createAction = ( type, argsMapper ) =>
+      ( ...args ) => Api(
         todoApp(
           state,
           Object.assign(
@@ -249,11 +239,10 @@ const privates = [
         )
       )
   }
-]
 
-const publics = [
-  ( api, state, coreApi, privateApi, staticApi ) => {
-    const { createAction } = privateApi
+const publicPlugins =
+  ({ api, state, privates }) => {
+    const { createAction } = privates
 
     api.add = createAction( 'add', text => ({ text }) )
     api.toggle = createAction( 'toggle', index => ({ index }) )
@@ -279,9 +268,12 @@ const publics = [
       console.log()
     }
   }
-]
 
-const Todos = ApiFactory( { core, privates, publics } )
+const Todos = ApiFactory({
+  core: corePlugins,
+  privates: privatePlugins,
+  api: publicPlugins
+})
 
 const initial = Todos( 'Eat food', 'Exercise' )
 

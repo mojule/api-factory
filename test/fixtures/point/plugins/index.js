@@ -1,6 +1,6 @@
 'use strict'
 
 const core = require( './core' )
-const publics = require( './publics' )
+const api = require( './api' )
 
-module.exports = { core, publics }
+module.exports = { core, api }
