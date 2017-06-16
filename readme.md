@@ -98,7 +98,7 @@ An instance of your API - all your public plugins operating over your state
 
 ## plugins
 
-Plugins can be of four types, `static`, `core`, `private`, `public`:
+Plugins can be of four types, `static`, `core`, `api`, `private`:
 
 ### static plugins
 
@@ -113,7 +113,7 @@ A static plugin closure looks like:
 }
 ```
 
-### core plugins
+### core api
 
 Things that are core to generating APIs, not specific to your API use case or
 the type of state you're working with - if a function would be useful regardless
@@ -143,7 +143,7 @@ Usually you would override some or all of these for your use case
 }
 ```
 
-### privates
+### private api
 
 Plugins that can be called internally but aren't exposed to the end consumer of
 the API
@@ -156,7 +156,7 @@ the API
 
 There are no default plugins, as they are dependant on the type of state etc
 
-### api
+### public api
 
 The plugins that end up being exposed to the end consumer of your API code
 
