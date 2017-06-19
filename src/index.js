@@ -43,6 +43,7 @@ const ApiFactory = ( ...pluginSets ) => {
   }
 
   const core = plugins.core.reduce( ( core, fn ) => {
+    fn({ core, Api, ApiFactory, plugins })
 
     return core
   }, {} )
