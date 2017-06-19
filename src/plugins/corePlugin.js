@@ -8,6 +8,7 @@ const corePlugin = ({ core }) => {
   core.getStateKey = state => state
   core.isState = state => true
   core.onCreate = api => {}
+  core.transformApi = api => api
 
   core.getState = api => stateMap.get( api )
   core.getApi = state => apiMap.get( core.getStateKey( state ) )

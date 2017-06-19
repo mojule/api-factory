@@ -1,7 +1,7 @@
 # api-factory
 
-**Caution** - work in progress - at this stage this doc is more draft/outline than
-anything
+**Caution** - work in progress - at this stage this doc is more draft/outline
+than anything
 
 ## Why?
 

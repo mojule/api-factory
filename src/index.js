@@ -9,7 +9,7 @@ const ApiFactory = ( ...pluginSets ) => {
 
   const Api = ( ...args ) => {
     const {
-      createState, isState, onCreate,
+      createState, isState, onCreate, transformApi,
 
       hasApi, getApi, memoizeApi
     } = core
@@ -28,11 +28,13 @@ const ApiFactory = ( ...pluginSets ) => {
       return privates
     }, {} )
 
-    const api = plugins.api.reduce( ( api, fn ) => {
-      fn({ api, state, core, privates, statics, Api })
+    const api = transformApi(
+      plugins.api.reduce( ( api, fn ) => {
+        fn({ api, state, core, privates, statics, Api })
 
-      return api
-    }, {} )
+        return api
+      }, {} )
+    )
 
     memoizeApi( api, state )
     onCreate( api )
