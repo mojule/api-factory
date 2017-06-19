@@ -17,6 +17,10 @@ describe( 'API Factory', () => {
       assert( is.object( api ) )
     })
 
+    it( 'Bad plugins', () => {
+      assert.throws( () => ApiFactory( { core: 42 }, { api: 42 } ) )
+    })
+
     it( 'Is', () => {
       assert( !is.plugins( [] ) )
       assert( !is.plugins( { core: 42 } ) )
@@ -30,24 +34,38 @@ describe( 'API Factory', () => {
         core.isState = state => is.number( state )
       }
 
-      const api = ({ api, state }) => {
-        api.value = () => state
+      const privates = ({ privates, state }) => {
+        privates.value = () => state
+      }
+
+      const api = ({ api, privates }) => {
+        api.value = () => privates.value()
       }
 
       it( 'Single set', () => {
-        const Api = ApiFactory( { core, api } )
+        const Api = ApiFactory( { core, api, privates } )
         const inst = Api( 42 )
         assert.strictEqual( inst.value(), 42 )
       })
 
       it( 'Multiple sets', () => {
-        const Api = ApiFactory( { core }, { api } )
+        const Api = ApiFactory( { core }, { api }, { privates } )
         const inst = Api( 42 )
         assert.strictEqual( inst.value(), 42 )
       })
 
       it( 'Public as just function', () => {
-        const Api = ApiFactory( { core }, api )
+        const Api = ApiFactory( { core, privates }, api )
+        const inst = Api( 42 )
+        assert.strictEqual( inst.value(), 42 )
+      })
+
+      it( 'Factory Factory', () => {
+        let Api = ApiFactory()
+        Api = Api.Factory( { core } )
+        Api = Api.Factory( { privates } )
+        Api = Api.Factory( api )
+
         const inst = Api( 42 )
         assert.strictEqual( inst.value(), 42 )
       })

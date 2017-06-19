@@ -1,7 +1,9 @@
 'use strict'
 
 const corePlugin = require( './corePlugin' )
+const staticPlugin = require( './staticPlugin' )
 
 module.exports = {
-  core: [ corePlugin ]
+  core: [ corePlugin ],
+  statics: [ staticPlugin ]
 }

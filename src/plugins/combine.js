@@ -6,9 +6,6 @@ const normalize = require( './normalize' )
 const combine = ( ...pluginSets ) => {
   const normalized = normalize( ...pluginSets )
 
-  if( !normalized.every( is.plugins ) )
-    throw new Error( 'Expected plugins' )
-
   return normalized.reduce(
     ( combined, { core, statics, api, privates } ) => {
       combined.core.push( ...core )

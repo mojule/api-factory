@@ -23,14 +23,14 @@ const ApiFactory = ( ...pluginSets ) => {
       return getApi( state )
 
     const privates = plugins.privates.reduce( ( privates, fn ) => {
-      fn({ privates, state, core, statics, Api })
+      fn({ privates, state, core, statics, Api, ApiFactory, plugins })
 
       return privates
     }, {} )
 
     const api = transformApi(
       plugins.api.reduce( ( api, fn ) => {
-        fn({ api, state, core, privates, statics, Api })
+        fn({ api, state, core, privates, statics, Api, ApiFactory, plugins })
 
         return api
       }, {} )
@@ -43,13 +43,12 @@ const ApiFactory = ( ...pluginSets ) => {
   }
 
   const core = plugins.core.reduce( ( core, fn ) => {
-    fn({ core, Api })
 
     return core
   }, {} )
 
   const statics = plugins.statics.reduce( ( statics, fn ) => {
-    fn({ statics, Api })
+    fn({ statics, Api, ApiFactory, plugins })
 
     return statics
   }, {} )
