@@ -1,6 +1,6 @@
 'use strict'
 
-const corePlugin = ({ core }) => {
+const state = ({ core }) => {
   const stateMap = new Map()
   const apiMap = new Map()
 
@@ -20,4 +20,4 @@ const corePlugin = ({ core }) => {
   }
 }
 
-module.exports = corePlugin
+module.exports = state

@@ -49,7 +49,7 @@ const ApiFactory = ( ...pluginSets ) => {
   }, {} )
 
   const statics = plugins.statics.reduce( ( statics, fn ) => {
-    fn({ statics, Api, ApiFactory, plugins })
+    fn({ statics, core, Api, ApiFactory, plugins })
 
     return statics
   }, {} )

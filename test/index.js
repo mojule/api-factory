@@ -38,8 +38,9 @@ describe( 'API Factory', () => {
         privates.value = () => state
       }
 
-      const api = ({ api, privates }) => {
+      const api = ({ api, privates, core }) => {
         api.value = () => privates.value()
+        api.propertyNames = () => core.propertyNames
       }
 
       it( 'Single set', () => {
@@ -68,6 +69,16 @@ describe( 'API Factory', () => {
 
         const inst = Api( 42 )
         assert.strictEqual( inst.value(), 42 )
+      })
+
+      it( 'Property names', () => {
+        const Api = ApiFactory( { core, api, privates } )
+
+        const inst = Api( 42 )
+
+        const propertyNames = inst.propertyNames()
+
+        assert.deepEqual( propertyNames, [ 'propertyNames' ] )
       })
 
       it( 'Bad', () => {

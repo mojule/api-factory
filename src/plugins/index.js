@@ -1,9 +1,11 @@
 'use strict'
 
-const corePlugin = require( './corePlugin' )
-const staticPlugin = require( './staticPlugin' )
+const properties = require( './core/properties' )
+const state = require( './core/state' )
+
+const factory = require( './statics/factory' )
 
 module.exports = {
-  core: [ corePlugin ],
-  statics: [ staticPlugin ]
+  core: [ properties, state ],
+  statics: [ factory ]
 }
