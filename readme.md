@@ -8,7 +8,8 @@ than anything
 It's a simple way to build APIs that enables a lot of cool things to be done
 with little effort, like:
 
-- Put a cool feature list here, including but not limited to:
+*Put a feature list here, including but not limited to:*
+
 - Plugins
 - Optional validation (faster without it, safer with - skip validation on data
   known to be good for big efficiency gains)
@@ -20,14 +21,14 @@ with little effort, like:
   - undo/redo stack
 - Create adapters and bridges to interop with other data structures/libraries
 - Memoizing
-- Object pooling
+- Object pooling to reduce GC
 - Dependency injection
 
-I'm sold on paring js down to its most powerful features and keeping things very
-simple - eliminate weird `this` behaviour, rely on functional concepts, simple
-objects (preferably JSON-serializable), object composition instead of
-inheritance etc. - but still be able to build complex things out of simple
-parts. Class-free OO. Started with Crockford's JS Good Parts but also see
+Code style focus is on paring js down to its most powerful features and keeping
+things very simple - eliminate weird `this` behaviour, rely on functional
+concepts, simple objects (preferably JSON-serializable), object composition
+instead of inheritance etc. - but still be able to build complex things out of
+simple parts. Class-free OO. Started with Crockford's JS Good Parts but also see
 his talks on the better parts, rationale behind ES6 and etc; Crockford, Eric
 Elliot, Mattias Petter Johansson et al
 
@@ -36,14 +37,15 @@ Elliot, Mattias Petter Johansson et al
 ## Things to consider for doc:
 
 - Using functional composition to create object oriented APIs over a state.
-- Functional and object oriented but not class based
+- Functional and object oriented synthesis - but **not** class based
 - Favouring composition over inheritance - GoF
-- Avoiding weird classes/prototypes, `this` etc - fragile, hacky
+- Avoiding weird classes/prototypes, `this` etc - fragile
 - Basis is composing functions and objects, two aspects of js that are great
 - Plugins are just closures
 - Modular, resuable
 - Inversion of control / dependency injection
-- Controlling mutation / access to state - create a small surface area for mutation
+- Controlling mutation / access to state - create a small surface area for
+  mutation
 - Optional validation
 - Override/wrapper/decorator plugins
 - Adapters, bridges etc.
@@ -51,17 +53,21 @@ Elliot, Mattias Petter Johansson et al
 - Hide state from consumers
 - Why core/api/privates/statics
 - Decoupling/separation of concerns etc.
-- Getting state from an api instance, getting an api instance from state - getApi/getState
+- Getting state from an api instance, getting an api instance from state -
+  getApi/getState
 - Caching/memoizing map etc. - === comparison and etc
 - State key
 - Creating state
-- Plugin order / capturing previous functions / overriding and calling previous etc
+- Plugin order / capturing previous functions / overriding and calling previous
+  etc
 - onCreate - observing creation of api instances
 - isState
 - Object pooling?
 - Examples: tree, grid
 
-Never use:
+## Code style
+
+Never use (unless interop with 3rd party or optimizing hot code):
   - coercive equals `a == b`
   - falsiness `const i = 1; if( i ){ /* ... */ }`
   - `null`
