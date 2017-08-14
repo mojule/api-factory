@@ -1,116 +1,62 @@
 'use strict'
 
-const is = require( '@mojule/is' )
+const is = require( './is' )
+const defaultPlugins = require( './plugins' )
+const combine = require( './plugins/combine' )
 
-const defaultOptions = {
-  getStateKey: state => state,
-  isState: state => true,
-  exposeState: false,
-  onCreate: api => {}
-}
-
-const ApiFactory = ( modules = [], options = {} ) => {
-  if( !is.array( modules ) )
-    modules = [ modules ]
-
-  if( !validModules( modules ) )
-    throw new Error( 'Expected modules to be an array of functions' )
-
-  options = Object.assign( {}, defaultOptions, options )
-
-  ensureOptions( options )
-
-  const {
-    getStateKey, isState, exposeState, onCreate
-  } = options
-
-  const apiCache = new Map()
-  const stateCache = new Map()
-
-  const getState = instance => stateCache.get( instance )
+const ApiFactory = ( ...pluginSets ) => {
+  const plugins = combine( defaultPlugins, ...pluginSets )
 
   const Api = ( ...args ) => {
-    const state = is.function( Api.createState ) ?
-      Api.createState( ...args ) : args[ 0 ]
+    const {
+      createState, isState, onCreate, transformApi,
 
-    if( !Api.isState( state ) )
-      throw new Error( 'Api state argument fails isState test' )
+      hasApi, getApi, memoizeApi
+    } = core
 
-    const key = Api.getStateKey( state )
+    const state = createState( ...args )
 
-    if( apiCache.has( key ) )
-      return apiCache.get( key )
+    if( !isState( state ) )
+      throw Error( 'Api state argument fails isState test' )
 
-    const api = ( ...args ) => Api( ...args )
+    if( hasApi( state ) )
+      return getApi( state )
 
-    const plugin = mod => {
-      const modApi = mod( api, state, getState )
+    const privates = plugins.privates.reduce( ( privates, fn ) => {
+      fn({ privates, state, core, statics, Api, ApiFactory, plugins })
 
-      Object.keys( modApi ).forEach( key => {
-        if( key.startsWith( '$' ) ){
-          modApi[ key.slice( 1 ) ] = modApi[ key ]
-          delete modApi[ key ]
-        }
-      })
+      return privates
+    }, {} )
 
-      Object.assign( api, modApi )
-    }
+    const api = transformApi(
+      plugins.api.reduce( ( api, fn ) => {
+        fn({ api, state, core, privates, statics, Api, ApiFactory, plugins })
 
-    if( exposeState )
-      Object.assign( api, { state } )
+        return api
+      }, {} )
+    )
 
-    stateCache.set( api, state )
-
-    modules.forEach( plugin )
-
-    apiCache.set( key, api )
-
-    Api.onCreate( api )
+    memoizeApi( api, state )
+    onCreate( api )
 
     return api
   }
 
-  const statics = Statics( Api, modules )
+  const core = plugins.core.reduce( ( core, fn ) => {
+    fn({ core, Api, ApiFactory, plugins })
 
-  Object.assign( Api, statics, { isState, getStateKey, onCreate } )
+    return core
+  }, {} )
+
+  const statics = plugins.statics.reduce( ( statics, fn ) => {
+    fn({ statics, core, Api, ApiFactory, plugins })
+
+    return statics
+  }, {} )
+
+  Object.assign( Api, statics )
 
   return Api
 }
-
-const validModules = modules =>
-  is.array( modules ) && modules.every( is.function )
-
-const ensureOptions = options => {
-  const { getStateKey, isState, exposeState, onCreate } = options
-
-  if( !is.function( getStateKey ) )
-    throw new Error( 'getStateKey option should be a function' )
-
-  if( !is.function( isState ) )
-    throw new Error( 'isState option should be a function' )
-
-  if( !is.function( onCreate ) )
-    throw new Error( 'onCreate option should be a function' )
-
-  if( !is.boolean( exposeState ) )
-    throw new Error( 'exposeState option should be a boolean' )
-}
-
-const Statics = ( Api, modules ) =>
-  modules.reduce( ( statics, mod ) => {
-    const fns = mod( statics )
-
-    const staticNames = Object.keys( fns ).filter( name =>
-      name.startsWith( '$' )
-    )
-
-    staticNames.forEach( name => {
-      const unprefixed = name.slice( 1 )
-
-      statics[ unprefixed ] = fns[ name ]
-    })
-
-    return statics
-  }, Api )
 
 module.exports = ApiFactory
